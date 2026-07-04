@@ -67,6 +67,8 @@ export function PriorityBadge({ priority, size }: PriorityBadgeProps) {
   )
 }
 
+export { PriorityBadge as LeadPriorityBadge }
+
 // Lead Score component
 interface LeadScoreProps {
   score: number

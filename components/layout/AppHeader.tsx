@@ -1,11 +1,14 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Search, Bell, Plus, Command, ChevronDown, Menu, ChevronLeft } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
+import { useCurrentUser } from '@/store/useAuthStore'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { useQuery } from '@tanstack/react-query'
+import { activityApi } from '@/lib/api'
 import Link from 'next/link'
 
 interface AppHeaderProps {
@@ -17,7 +20,16 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: AppHeaderProps) {
-  const { currentUser, setCommandPaletteOpen, setAddLeadOpen, sidebarCollapsed, toggleSidebar } = useAppStore()
+  const { setCommandPaletteOpen, setAddLeadOpen, sidebarCollapsed, toggleSidebar } = useAppStore()
+  const currentUser = useCurrentUser()
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+
+  const { data: notificationsData } = useQuery({
+    queryKey: ['recent-notifications'],
+    queryFn: () => activityApi.list({ limit: 5 }).then((r) => r.data.data),
+    enabled: !!currentUser,
+    refetchInterval: 60000,
+  })
 
   return (
     <header
@@ -106,13 +118,59 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
         {actions}
 
         {/* Notifications */}
-        <button
-          className="relative w-7 h-7 rounded-full flex items-center justify-center text-body-brown hover:bg-stone-surface hover:text-ink-black transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-alert-red" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            className={cn(
+              "relative w-7 h-7 rounded-full flex items-center justify-center text-body-brown hover:bg-stone-surface hover:text-ink-black transition-colors",
+              notificationsOpen && "bg-stone-surface text-ink-black"
+            )}
+            aria-label="Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-alert-red animate-pulse" />
+          </button>
+
+          {notificationsOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setNotificationsOpen(false)} />
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-cards border border-stone-surface shadow-premium z-40 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="flex items-center justify-between border-b border-stone-surface pb-2">
+                  <span className="text-xs font-bold text-heading-charcoal">Recent Notifications</span>
+                  <span className="text-[10px] bg-stone-surface text-body-brown px-1.5 py-0.5 rounded font-bold">Live</span>
+                </div>
+                
+                <div className="space-y-2.5 max-h-64 overflow-y-auto">
+                  {!notificationsData || notificationsData.length === 0 ? (
+                    <div className="text-center py-6 text-[11px] text-muted-gray">
+                      No new notifications
+                    </div>
+                  ) : (
+                    notificationsData.map((act) => (
+                      <div key={act.id} className="text-left text-xs p-2 rounded hover:bg-[#fcfbf9] transition-colors border border-transparent hover:border-stone-surface">
+                        <p className="font-semibold text-heading-charcoal leading-snug">{act.description}</p>
+                        <div className="flex items-center justify-between mt-1 text-[9px] text-muted-gray">
+                          <span>By {act.performed_by?.name || 'System'}</span>
+                          <span>{formatDate(act.created_at, 'relative')}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="border-t border-stone-surface pt-2 text-center">
+                  <Link
+                    href="/activity"
+                    onClick={() => setNotificationsOpen(false)}
+                    className="text-[10px] font-bold text-ink-black hover:underline uppercase tracking-wider block"
+                  >
+                    View All Activity Log
+                  </Link>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* User Menu */}
         {currentUser && (

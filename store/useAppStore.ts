@@ -2,13 +2,9 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User, LeadFilters } from '@/types'
+import type { LeadFilters } from '@/types'
 
 interface AppState {
-  // Auth
-  currentUser: User | null
-  setCurrentUser: (user: User | null) => void
-
   // Sidebar
   sidebarCollapsed: boolean
   setSidebarCollapsed: (collapsed: boolean) => void
@@ -39,20 +35,6 @@ const defaultFilters: LeadFilters = {}
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      // Auth
-      currentUser: {
-        id: 'user-1',
-        name: 'Arjun Rathore',
-        email: 'arjun.rathore@propcrm.in',
-        phone: '9876543210',
-        role: 'admin',
-        isActive: true,
-        assignedLeads: 0,
-        closedDeals: 0,
-        createdAt: new Date().toISOString(),
-      },
-      setCurrentUser: (user) => set({ currentUser: user }),
-
       // Sidebar
       sidebarCollapsed: false,
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
@@ -86,7 +68,6 @@ export const useAppStore = create<AppState>()(
     {
       name: 'crm-app-store',
       partialize: (state) => ({
-        currentUser: state.currentUser,
         sidebarCollapsed: state.sidebarCollapsed,
       }),
     }
