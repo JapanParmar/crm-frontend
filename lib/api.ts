@@ -141,6 +141,23 @@ export const usersApi = {
 }
 
 // ---------------------------------------------------------------------------
+// RBAC (Roles & Permissions)
+// ---------------------------------------------------------------------------
+export interface ApiRole {
+  id: number
+  name: string
+  permissions: string[]
+}
+
+export const rbacApi = {
+  getRoles: () => api.get<ApiSuccessResponse<ApiRole[]>>('/rbac/roles'),
+  createRole: (data: { name: string }) => api.post<ApiSuccessResponse<ApiRole>>('/rbac/roles', data),
+  getPermissions: () => api.get<ApiSuccessResponse<string[]>>('/rbac/permissions'),
+  syncPermissions: (roleId: number | string, permissions: string[]) =>
+    api.patch<ApiSuccessResponse<ApiRole>>(`/rbac/roles/${roleId}/permissions`, { permissions }),
+}
+
+// ---------------------------------------------------------------------------
 // Activity Log
 // ---------------------------------------------------------------------------
 export const activityApi = {
@@ -203,9 +220,11 @@ export interface AccessFlags {
   users: boolean
   activity_log: boolean
   settings: boolean
+  rbac?: boolean
 }
 
 export interface ApiLead {
+  leadNumber: any
   id: number
   lead_number: string
   name: string

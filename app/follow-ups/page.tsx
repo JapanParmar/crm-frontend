@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageHeader } from '@/components/layout/AppHeader'
 import { AddLeadModal } from '@/components/leads/AddLeadModal'
+import { ScheduleFollowUpModal } from '@/components/leads/ScheduleFollowUpModal'
+import { CompleteFollowUpModal } from '@/components/leads/CompleteFollowUpModal'
 import { useAppStore } from '@/store/useAppStore'
 import { followUpsApi } from '@/lib/api'
 import type { ApiFollowUp } from '@/lib/api'
@@ -38,10 +40,24 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 }
 
 export default function FollowUpsPage() {
+  const queryClient = useQueryClient()
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
   const [activeTab, setActiveTab] = useState<Tab>('today')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+
+  // Scheduling states
+  const [scheduleFuOpen, setScheduleFuOpen] = useState(false)
+  const [completeFuOpen, setCompleteFuOpen] = useState(false)
+  const [selectedFu, setSelectedFu] = useState<ApiFollowUp | null>(null)
+
+  const missFuMutation = useMutation({
+    mutationFn: (fuId: number) => followUpsApi.miss(fuId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
+      queryClient.invalidateQueries({ queryKey: ['follow-up-counts'] })
+    },
+  })
 
   const queryParams = {
     tab: activeTab,
@@ -92,7 +108,7 @@ export default function FollowUpsPage() {
             activeTab={activeTab}
             onTabChange={handleTabChange}
             actions={
-              <Button variant="primary" size="sm" icon={<CalendarPlus className="w-3.5 h-3.5" />}>
+              <Button variant="primary" size="sm" icon={<CalendarPlus className="w-3.5 h-3.5" />} onClick={() => setScheduleFuOpen(true)}>
                 Schedule
               </Button>
             }
@@ -180,14 +196,41 @@ export default function FollowUpsPage() {
                       </div>
 
                       {/* Actions for scheduled */}
-                      {fu.status === 'scheduled' && fu.lead?.phone && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <a href={`tel:${fu.lead.phone}`} className="p-1.5 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black transition-colors" title="Call">
-                            <Phone className="w-3.5 h-3.5" />
-                          </a>
-                          <a href={`https://wa.me/91${fu.lead.phone}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black transition-colors" title="WhatsApp">
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </a>
+                      {fu.status === 'scheduled' && (
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {fu.lead?.phone && (
+                            <>
+                              <a href={`tel:${fu.lead.phone}`} className="p-1.5 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black transition-colors" title="Call">
+                                <Phone className="w-3.5 h-3.5" />
+                              </a>
+                              <a href={`https://wa.me/91${fu.lead.phone}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black transition-colors" title="WhatsApp">
+                                <MessageSquare className="w-3.5 h-3.5" />
+                              </a>
+                            </>
+                          )}
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => {
+                              setSelectedFu(fu)
+                              setCompleteFuOpen(true)
+                            }}
+                          >
+                            Complete
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            className="text-alert-red hover:bg-alert-red/5"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to mark this follow-up as missed?')) {
+                                missFuMutation.mutate(fu.id)
+                              }
+                            }}
+                            disabled={missFuMutation.isPending}
+                          >
+                            Missed
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -211,6 +254,29 @@ export default function FollowUpsPage() {
           )}
         </div>
       </main>
+
+      {/* Schedule / Complete Modals */}
+      <ScheduleFollowUpModal
+        open={scheduleFuOpen}
+        onClose={() => setScheduleFuOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
+          queryClient.invalidateQueries({ queryKey: ['follow-up-counts'] })
+        }}
+      />
+
+      <CompleteFollowUpModal
+        open={completeFuOpen}
+        followUp={selectedFu}
+        onClose={() => {
+          setCompleteFuOpen(false)
+          setSelectedFu(null)
+        }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
+          queryClient.invalidateQueries({ queryKey: ['follow-up-counts'] })
+        }}
+      />
     </AppShell>
   )
 }

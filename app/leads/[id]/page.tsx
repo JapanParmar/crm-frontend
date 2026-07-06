@@ -3,6 +3,7 @@
 import React, { use, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   PhoneCall,
   MessageSquare,
@@ -18,18 +19,29 @@ import {
   Star,
   AlertCircle,
   Home,
+  Pencil,
+  Trash2,
+  Plus,
 } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { LeadStatusBadge, LeadSourceBadge, LeadPriorityBadge, LeadScore } from '@/components/leads/LeadBadges'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { leadsApi, usersApi } from '@/lib/api'
+import { leadsApi, usersApi, followUpsApi } from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
 import type { ApiActivity, ApiFollowUp, ApiSiteVisit } from '@/lib/api'
 import { LEAD_STATUS_LABELS, FOLLOW_UP_TYPE_LABELS } from '@/lib/constants'
 import { formatDate, formatCurrency, formatPhone } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+
+// New modals
+import { AddLeadModal } from '@/components/leads/AddLeadModal'
+import { ScheduleFollowUpModal } from '@/components/leads/ScheduleFollowUpModal'
+import { CompleteFollowUpModal } from '@/components/leads/CompleteFollowUpModal'
+import { ScheduleSiteVisitModal } from '@/components/leads/ScheduleSiteVisitModal'
+import { CompleteSiteVisitModal } from '@/components/leads/CompleteSiteVisitModal'
+import { ConfirmDialog } from '@/components/ui/modal'
 
 const PIPELINE_STAGES = [
   { status: 'new', label: 'New' },
@@ -74,8 +86,21 @@ interface LeadDetailPageProps {
 export default function LeadDetailPage({ params }: LeadDetailPageProps) {
   const { id } = use(params)
   const queryClient = useQueryClient()
+  const router = useRouter()
   const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
+
+  // Modals state
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+
+  const [scheduleFuOpen, setScheduleFuOpen] = useState(false)
+  const [completeFuOpen, setCompleteFuOpen] = useState(false)
+  const [selectedFu, setSelectedFu] = useState<ApiFollowUp | null>(null)
+
+  const [scheduleSvOpen, setScheduleSvOpen] = useState(false)
+  const [completeSvOpen, setCompleteSvOpen] = useState(false)
+  const [selectedSv, setSelectedSv] = useState<ApiSiteVisit | null>(null)
 
   const { data: leadData, isLoading } = useQuery({
     queryKey: ['lead', id],
@@ -93,6 +118,8 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
       leadsApi.update(id, { assigned_to: (employeeId ?? null) as any }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead', id] })
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['leads-counts'] })
       queryClient.invalidateQueries({ queryKey: ['lead-activity', id] })
     },
   })
@@ -117,7 +144,30 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
 
   const updateStatusMutation = useMutation({
     mutationFn: (status: string) => leadsApi.update(id, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lead', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead', id] })
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['leads-counts'] })
+      queryClient.invalidateQueries({ queryKey: ['lead-activity', id] })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => leadsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['leads-counts'] })
+      router.replace('/leads')
+    },
+  })
+
+  const missFuMutation = useMutation({
+    mutationFn: (fuId: number) => followUpsApi.miss(fuId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead', id] })
+      queryClient.invalidateQueries({ queryKey: ['lead-followups', id] })
+      queryClient.invalidateQueries({ queryKey: ['lead-activity', id] })
+    },
   })
 
   const lead = leadData
@@ -196,13 +246,33 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-buttons text-xs font-semibold border border-stone-border hover:bg-stone-surface transition-colors text-body-brown">
                   <PhoneCall className="w-3.5 h-3.5" /> Call
                 </a>
                 <a href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-buttons text-xs font-semibold border border-stone-border hover:bg-stone-surface transition-colors text-body-brown">
                   <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
                 </a>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Pencil className="w-3.5 h-3.5" />}
+                  onClick={() => setEditOpen(true)}
+                  className="text-body-brown hover:text-ink-black"
+                >
+                  Edit
+                </Button>
+                {user?.access?.delete_leads && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Trash2 className="w-3.5 h-3.5 text-alert-red" />}
+                    onClick={() => setDeleteOpen(true)}
+                    className="text-alert-red border-alert-red/20 hover:bg-alert-red/5"
+                  >
+                    Delete
+                  </Button>
+                )}
                 <LeadScore score={lead.score} />
               </div>
             </div>
@@ -404,82 +474,232 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
           )}
 
           {activeTab === 'followups' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wider">Scheduled Follow-ups</h3>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Plus className="w-3.5 h-3.5" />}
+                  onClick={() => setScheduleFuOpen(true)}
+                >
+                  Schedule Follow-up
+                </Button>
+              </div>
+
               {followUps.length === 0 ? (
                 <div className="bg-white rounded-cards border border-stone-surface p-8 text-center">
                   <CalendarPlus className="w-8 h-8 text-muted-gray mx-auto mb-2" />
-                  <p className="text-xs text-muted-gray">No follow-ups scheduled yet</p>
+                  <p className="text-xs text-muted-gray mb-4">No follow-ups scheduled yet</p>
+                  <Button variant="outline" size="sm" onClick={() => setScheduleFuOpen(true)}>
+                    Schedule One Now
+                  </Button>
                 </div>
               ) : (
-                followUps.map((fu: ApiFollowUp) => (
-                  <div key={fu.id} className="bg-white rounded-cards border border-stone-surface p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-heading-charcoal capitalize">{fu.type}</span>
-                        <span className={cn(
-                          'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
-                          fu.status === 'completed' ? 'bg-grass-green/10 text-grass-green' :
-                          fu.status === 'missed' ? 'bg-alert-red/10 text-alert-red' :
-                          fu.status === 'scheduled' ? 'bg-sky-blue/10 text-sky-blue' :
-                          'bg-stone-surface text-muted-gray'
-                        )}>
-                          {fu.status}
-                        </span>
+                <div className="space-y-3">
+                  {followUps.map((fu: ApiFollowUp) => (
+                    <div key={fu.id} className="bg-white rounded-cards border border-stone-surface p-4 flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-xs font-bold text-heading-charcoal capitalize">{fu.type}</span>
+                          <span className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
+                            fu.status === 'completed' ? 'bg-grass-green/10 text-grass-green' :
+                            fu.status === 'missed' ? 'bg-alert-red/10 text-alert-red' :
+                            fu.status === 'scheduled' ? 'bg-sky-blue/10 text-sky-blue' :
+                            'bg-stone-surface text-muted-gray'
+                          )}>
+                            {fu.status}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-gray font-medium">{formatDate(fu.scheduled_at, 'long')}</p>
+                        {fu.notes && <p className="text-xs text-body-brown mt-1.5 leading-relaxed bg-[#fcfbf9] border border-stone-surface/60 p-2 rounded">{fu.notes}</p>}
+                        {fu.outcome && <p className="text-xs text-grass-green mt-1.5 font-semibold">Outcome: {fu.outcome}</p>}
+                        {fu.assigned_to && <p className="text-[10px] text-muted-gray mt-1">Handled by {fu.assigned_to.name}</p>}
                       </div>
-                      <span className="text-[10px] text-muted-gray">{formatDate(fu.scheduled_at, 'long')}</span>
+                      
+                      {fu.status === 'scheduled' && (
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => {
+                              setSelectedFu(fu)
+                              setCompleteFuOpen(true)
+                            }}
+                          >
+                            Complete
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            className="text-alert-red hover:bg-alert-red/5"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to mark this follow-up as missed?')) {
+                                missFuMutation.mutate(fu.id)
+                              }
+                            }}
+                            disabled={missFuMutation.isPending}
+                          >
+                            Missed
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    {fu.notes && <p className="text-xs text-body-brown mt-1">{fu.notes}</p>}
-                    {fu.outcome && <p className="text-xs text-grass-green mt-1 font-semibold">Outcome: {fu.outcome}</p>}
-                    {fu.assigned_to && <p className="text-[10px] text-muted-gray mt-1">Handled by {fu.assigned_to.name}</p>}
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           )}
 
           {activeTab === 'sitevisits' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wider">Scheduled Site Visits</h3>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Plus className="w-3.5 h-3.5" />}
+                  onClick={() => setScheduleSvOpen(true)}
+                >
+                  Schedule Site Visit
+                </Button>
+              </div>
+
               {siteVisits.length === 0 ? (
                 <div className="bg-white rounded-cards border border-stone-surface p-8 text-center">
                   <Building2 className="w-8 h-8 text-muted-gray mx-auto mb-2" />
-                  <p className="text-xs text-muted-gray">No site visits scheduled yet</p>
+                  <p className="text-xs text-muted-gray mb-4">No site visits scheduled yet</p>
+                  <Button variant="outline" size="sm" onClick={() => setScheduleSvOpen(true)}>
+                    Schedule One Now
+                  </Button>
                 </div>
               ) : (
-                siteVisits.map((visit: ApiSiteVisit) => (
-                  <div key={visit.id} className="bg-white rounded-cards border border-stone-surface p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-heading-charcoal">{visit.project_name}</span>
-                        <span className={cn(
-                          'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
-                          visit.status === 'completed' ? 'bg-grass-green/10 text-grass-green' :
-                          visit.status === 'no_show' ? 'bg-alert-red/10 text-alert-red' :
-                          'bg-sky-blue/10 text-sky-blue'
-                        )}>
-                          {visit.status.replace('_', ' ')}
-                        </span>
-                        {visit.interested !== null && (
-                          <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-semibold', visit.interested ? 'bg-grass-green/10 text-grass-green' : 'bg-alert-red/10 text-alert-red')}>
-                            {visit.interested ? '✓ Interested' : '✗ Not Interested'}
+                <div className="space-y-3">
+                  {siteVisits.map((visit: ApiSiteVisit) => (
+                    <div key={visit.id} className="bg-white rounded-cards border border-stone-surface p-4 flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold text-heading-charcoal">{visit.project_name}</span>
+                          <span className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
+                            visit.status === 'completed' ? 'bg-grass-green/10 text-grass-green' :
+                            visit.status === 'no_show' ? 'bg-alert-red/10 text-alert-red' :
+                            'bg-sky-blue/10 text-sky-blue'
+                          )}>
+                            {visit.status.replace('_', ' ')}
                           </span>
+                          {visit.interested !== null && (
+                            <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-semibold', visit.interested ? 'bg-grass-green/10 text-grass-green' : 'bg-alert-red/10 text-alert-red')}>
+                              {visit.interested ? '✓ Interested' : '✗ Not Interested'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-gray font-medium">{formatDate(visit.scheduled_at, 'long')}</p>
+                        {visit.location && (
+                          <p className="text-xs text-body-brown flex items-center gap-1 mt-1">
+                            <MapPin className="w-3 h-3 text-muted-gray" />{visit.location}
+                          </p>
                         )}
+                        {visit.notes && <p className="text-xs text-body-brown mt-1.5 leading-relaxed bg-[#fcfbf9] border border-stone-surface/60 p-2 rounded">{visit.notes}</p>}
+                        {visit.feedback && <p className="text-xs text-body-brown mt-1.5 p-2 bg-[#fcfbf9] border border-stone-surface rounded leading-relaxed">{visit.feedback}</p>}
+                        {visit.attended_by && <p className="text-[10px] text-muted-gray mt-1">Attended by {visit.attended_by.name}</p>}
                       </div>
-                      <span className="text-[10px] text-muted-gray">{formatDate(visit.scheduled_at, 'long')}</span>
+
+                      {visit.status === 'scheduled' && (
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => {
+                              setSelectedSv(visit)
+                              setCompleteSvOpen(true)
+                            }}
+                          >
+                            Log Feedback
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    {visit.location && (
-                      <p className="text-xs text-body-brown flex items-center gap-1 mt-1">
-                        <MapPin className="w-3 h-3" />{visit.location}
-                      </p>
-                    )}
-                    {visit.feedback && <p className="text-xs text-body-brown mt-1 p-2 bg-[#fcfbf9] rounded">{visit.feedback}</p>}
-                    {visit.attended_by && <p className="text-[10px] text-muted-gray mt-1">Attended by {visit.attended_by.name}</p>}
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           )}
         </div>
       </main>
+
+      {/* Modals & Dialogs */}
+      <AddLeadModal
+        open={editOpen}
+        lead={lead}
+        onClose={() => setEditOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['lead', id] })
+          queryClient.invalidateQueries({ queryKey: ['leads'] })
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Delete Lead"
+        description={`Are you sure you want to permanently delete lead "${lead.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteMutation.isPending}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => deleteMutation.mutate()}
+      />
+
+      <ScheduleFollowUpModal
+        open={scheduleFuOpen}
+        leadId={lead.id}
+        onClose={() => setScheduleFuOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['lead', id] })
+          queryClient.invalidateQueries({ queryKey: ['lead-followups', id] })
+          queryClient.invalidateQueries({ queryKey: ['lead-activity', id] })
+        }}
+      />
+
+      <CompleteFollowUpModal
+        open={completeFuOpen}
+        followUp={selectedFu}
+        onClose={() => {
+          setCompleteFuOpen(false)
+          setSelectedFu(null)
+        }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['lead', id] })
+          queryClient.invalidateQueries({ queryKey: ['lead-followups', id] })
+          queryClient.invalidateQueries({ queryKey: ['lead-activity', id] })
+        }}
+      />
+
+      <ScheduleSiteVisitModal
+        open={scheduleSvOpen}
+        leadId={lead.id}
+        onClose={() => setScheduleSvOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['lead', id] })
+          queryClient.invalidateQueries({ queryKey: ['lead-sitevisits', id] })
+          queryClient.invalidateQueries({ queryKey: ['lead-activity', id] })
+        }}
+      />
+
+      <CompleteSiteVisitModal
+        open={completeSvOpen}
+        siteVisit={selectedSv}
+        onClose={() => {
+          setCompleteSvOpen(false)
+          setSelectedSv(null)
+        }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['lead', id] })
+          queryClient.invalidateQueries({ queryKey: ['lead-sitevisits', id] })
+          queryClient.invalidateQueries({ queryKey: ['lead-activity', id] })
+        }}
+      />
     </AppShell>
   )
 }

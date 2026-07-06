@@ -17,6 +17,7 @@ import {
   LogOut,
   Import,
   ScrollText,
+  Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -57,6 +58,7 @@ export function AppSidebar() {
       section: 'SYSTEM',
       items: [
         access.settings && { label: 'Settings', icon: Settings, href: '/settings' },
+        access.rbac && { label: 'Access Control', icon: Shield, href: '/rbac' },
       ].filter(Boolean),
     },
   ].filter((group) => group.items.length > 0)
@@ -72,7 +74,9 @@ export function AppSidebar() {
     }
   }
 
-  const roleLabel = currentUser?.roles?.includes('admin')
+  const roleLabel = currentUser?.roles?.includes('superadmin')
+    ? 'Super Administrator'
+    : currentUser?.roles?.includes('admin')
     ? 'Administrator'
     : 'Sales Executive'
 

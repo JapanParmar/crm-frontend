@@ -25,6 +25,7 @@ import {
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const FOLLOW_UP_TYPE_ICONS: Record<string, React.ReactNode> = {
   call: <PhoneCall className="w-3 h-3" />,
@@ -66,6 +67,7 @@ function SkeletonCard() {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
   const { user } = useAuthStore()
   const isAdmin = user?.roles?.includes('admin') ?? false
@@ -214,6 +216,7 @@ export default function DashboardPage() {
                         <div
                           key={fu.id}
                           className="flex items-center gap-3 p-3 rounded-cards bg-[#fcfbf9] border border-stone-surface hover:border-stone-border transition-all duration-100 cursor-pointer group"
+                          onClick={() => router.push(`/leads/${fu.lead_id}`)}
                         >
                           <div
                             className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border border-stone-border"
@@ -285,7 +288,7 @@ export default function DashboardPage() {
                         </tr>
                       ) : (
                         recentLeads.map((lead) => (
-                          <tr key={lead.id} className="hover:bg-[#fcfbf9] cursor-pointer group transition-colors duration-75">
+                          <tr key={lead.id} className="hover:bg-[#fcfbf9] cursor-pointer group transition-colors duration-75" onClick={() => router.push(`/leads/${lead.id}`)}>
                             <td className="px-3 py-3">
                               <div className="flex items-center gap-2">
                                 <Avatar name={lead.name} size="xs" />

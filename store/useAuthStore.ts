@@ -68,6 +68,7 @@ export const useAccess = () => {
     users: false,
     activity_log: false,
     settings: false,
+    rbac: false,
   }
   return user?.access ?? defaults
 }

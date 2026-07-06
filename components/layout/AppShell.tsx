@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 import { AppSidebar } from './AppSidebar'
+import { CommandPalette } from './CommandPalette'
 import { cn } from '@/lib/utils'
 
 interface AppShellProps {
@@ -26,8 +27,14 @@ export function AppShell({ children }: AppShellProps) {
           sidebarCollapsed ? 'ml-0 md:ml-14' : 'ml-0 md:ml-[220px]'
         )}
       >
-        {mounted ? children : null}
+        {mounted ? (
+          <>
+            {children}
+            <CommandPalette />
+          </>
+        ) : null}
       </div>
     </div>
   )
 }
+

@@ -15,7 +15,7 @@ const memberSchema = z.object({
   email: z.string().email('Enter a valid email'),
   phone: z.string().optional(),
   role: z.string().min(1, 'Select a role'),
-  is_active: z.boolean().default(true),
+  is_active: z.boolean(),
   password: z.string().optional(),
 }).refine((data) => {
   // If password is not provided when creating, validation should fail

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { AddLeadModal } from '@/components/leads/AddLeadModal'
@@ -27,12 +27,39 @@ const PIPELINE_COLUMNS: { status: LeadStatus; color: string; bg: string }[] = [
 
 export default function PipelinePage() {
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
+  const queryClient = useQueryClient()
 
   // Fetch leads to display in pipeline. Since this is an overview, we grab a reasonable count.
   const { data, isLoading } = useQuery({
     queryKey: ['leads-pipeline'],
     queryFn: () => leadsApi.list({ limit: 150 }).then((r) => r.data),
   })
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      leadsApi.update(id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads-pipeline'] })
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['leads-counts'] })
+    },
+  })
+
+  const handleDragStart = (e: React.DragEvent, id: number) => {
+    e.dataTransfer.setData('text/plain', String(id))
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (e: React.DragEvent, status: string) => {
+    e.preventDefault()
+    const leadIdStr = e.dataTransfer.getData('text/plain')
+    if (leadIdStr) {
+      updateStatusMutation.mutate({ id: parseInt(leadIdStr), status })
+    }
+  }
 
   const allLeads = data?.data ?? []
 
@@ -67,6 +94,8 @@ export default function PipelinePage() {
                     key={status}
                     className="flex-1 flex flex-col rounded-cards border border-stone-border bg-white overflow-hidden shadow-sm"
                     style={{ minWidth: '240px', height: 'calc(100vh - 200px)' }}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, status)}
                   >
                     {/* Column Header */}
                     <div
@@ -98,7 +127,9 @@ export default function PipelinePage() {
                         <Link
                           key={lead.id}
                           href={`/leads/${lead.id}`}
-                          className="block bg-white rounded-cards border border-stone-surface p-3 hover:border-stone-border transition-all duration-100 group shadow-sm"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, lead.id)}
+                          className="block bg-white rounded-cards border border-stone-surface p-3 hover:border-stone-border transition-all duration-100 group shadow-sm cursor-grab active:cursor-grabbing"
                         >
                           <div className="flex items-start gap-2">
                             <Avatar name={lead.name} size="xs" />

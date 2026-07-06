@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageHeader } from '@/components/layout/AppHeader'
 import { AddLeadModal } from '@/components/leads/AddLeadModal'
+import { ScheduleSiteVisitModal } from '@/components/leads/ScheduleSiteVisitModal'
+import { CompleteSiteVisitModal } from '@/components/leads/CompleteSiteVisitModal'
 import { useAppStore } from '@/store/useAppStore'
 import { siteVisitsApi } from '@/lib/api'
 import type { ApiSiteVisit } from '@/lib/api'
@@ -30,10 +32,16 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; bg: 
 }
 
 export default function SiteVisitsPage() {
+  const queryClient = useQueryClient()
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
   const [activeTab, setActiveTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+
+  // Scheduling states
+  const [scheduleSvOpen, setScheduleSvOpen] = useState(false)
+  const [completeSvOpen, setCompleteSvOpen] = useState(false)
+  const [selectedSv, setSelectedSv] = useState<ApiSiteVisit | null>(null)
 
   const queryParams = {
     status: activeTab !== 'all' ? activeTab : undefined,
@@ -77,7 +85,7 @@ export default function SiteVisitsPage() {
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={(t) => { setActiveTab(t as Tab); setPage(1) }}
-            actions={<Button variant="primary" size="sm" icon={<CalendarPlus className="w-3.5 h-3.5" />}>Schedule Visit</Button>}
+            actions={<Button variant="primary" size="sm" icon={<CalendarPlus className="w-3.5 h-3.5" />} onClick={() => setScheduleSvOpen(true)}>Schedule Visit</Button>}
           />
           <div className="px-4 py-2.5">
             <div className="relative max-w-xs">
@@ -106,41 +114,58 @@ export default function SiteVisitsPage() {
                 const statusConf = STATUS_CONFIG[visit.status] ?? STATUS_CONFIG.scheduled
                 return (
                   <div key={visit.id} className="p-4 rounded-cards border border-stone-surface bg-white hover:border-stone-border transition-all duration-100">
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border border-stone-border/20" style={{ backgroundColor: statusConf.bg, color: statusConf.text }}>
-                        <Building2 className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          {visit.lead ? (
-                            <Link href={`/leads/${visit.lead_id}`} className="text-sm font-semibold text-heading-charcoal hover:underline">{visit.lead.name}</Link>
-                          ) : (
-                            <span className="text-sm font-semibold text-heading-charcoal">Lead #{visit.lead_id}</span>
-                          )}
-                          {visit.lead?.phone && <span className="text-xs text-muted-gray">{visit.lead.phone}</span>}
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border" style={{ backgroundColor: statusConf.bg, color: statusConf.text, borderColor: statusConf.text + '20' }}>
-                            {statusConf.icon} {statusConf.label}
-                          </span>
-                          {visit.status === 'completed' && visit.interested !== null && (
-                            <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border', visit.interested ? 'bg-mint text-grass-green border-grass-green/20' : 'bg-alert-red/5 text-alert-red border-alert-red/20')}>
-                              {visit.interested ? '✓ Interested' : '✗ Not interested'}
+                    <div className="flex items-start gap-3 justify-between">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border border-stone-border/20" style={{ backgroundColor: statusConf.bg, color: statusConf.text }}>
+                          <Building2 className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            {visit.lead ? (
+                              <Link href={`/leads/${visit.lead_id}`} className="text-sm font-semibold text-heading-charcoal hover:underline">{visit.lead.name}</Link>
+                            ) : (
+                              <span className="text-sm font-semibold text-heading-charcoal">Lead #{visit.lead_id}</span>
+                            )}
+                            {visit.lead?.phone && <span className="text-xs text-muted-gray">{visit.lead.phone}</span>}
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border" style={{ backgroundColor: statusConf.bg, color: statusConf.text, borderColor: statusConf.text + '20' }}>
+                              {statusConf.icon} {statusConf.label}
                             </span>
+                            {visit.status === 'completed' && visit.interested !== null && (
+                              <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border', visit.interested ? 'bg-mint text-grass-green border-grass-green/20' : 'bg-alert-red/5 text-alert-red border-alert-red/20')}>
+                                {visit.interested ? '✓ Interested' : '✗ Not interested'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mb-2 flex-wrap">
+                            <span className="flex items-center gap-1 text-xs text-body-brown"><Building2 className="w-3 h-3 text-muted-gray" /><span className="font-semibold">{visit.project_name}</span></span>
+                            {visit.location && <span className="flex items-center gap-1 text-xs text-muted-gray"><MapPin className="w-3 h-3" />{visit.location}</span>}
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="flex items-center gap-1.5 text-xs text-body-brown"><Clock className="w-3 h-3" />{formatDate(visit.scheduled_at, 'long')}</span>
+                            {visit.attended_by && <span className="flex items-center gap-1.5 text-xs text-body-brown"><Avatar name={visit.attended_by.name} size="xs" />{visit.attended_by.name}</span>}
+                          </div>
+                          {visit.feedback && (
+                            <div className="mt-2 p-2 rounded-cards bg-[#fcfbf9] border border-stone-border">
+                              <p className="text-xs text-body-brown leading-relaxed">{visit.feedback}</p>
+                            </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mb-2 flex-wrap">
-                          <span className="flex items-center gap-1 text-xs text-body-brown"><Building2 className="w-3 h-3 text-muted-gray" /><span className="font-semibold">{visit.project_name}</span></span>
-                          {visit.location && <span className="flex items-center gap-1 text-xs text-muted-gray"><MapPin className="w-3 h-3" />{visit.location}</span>}
-                        </div>
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span className="flex items-center gap-1.5 text-xs text-body-brown"><Clock className="w-3 h-3" />{formatDate(visit.scheduled_at, 'long')}</span>
-                          {visit.attended_by && <span className="flex items-center gap-1.5 text-xs text-body-brown"><Avatar name={visit.attended_by.name} size="xs" />{visit.attended_by.name}</span>}
-                        </div>
-                        {visit.feedback && (
-                          <div className="mt-2 p-2 rounded-cards bg-[#fcfbf9] border border-stone-border">
-                            <p className="text-xs text-body-brown leading-relaxed">{visit.feedback}</p>
-                          </div>
-                        )}
                       </div>
+
+                      {visit.status === 'scheduled' && (
+                        <div className="flex-shrink-0">
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => {
+                              setSelectedSv(visit)
+                              setCompleteSvOpen(true)
+                            }}
+                          >
+                            Log Feedback
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -156,6 +181,29 @@ export default function SiteVisitsPage() {
           )}
         </div>
       </main>
+
+      {/* Schedule / Complete Modals */}
+      <ScheduleSiteVisitModal
+        open={scheduleSvOpen}
+        onClose={() => setScheduleSvOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['site-visits'] })
+          queryClient.invalidateQueries({ queryKey: ['site-visit-counts'] })
+        }}
+      />
+
+      <CompleteSiteVisitModal
+        open={completeSvOpen}
+        siteVisit={selectedSv}
+        onClose={() => {
+          setCompleteSvOpen(false)
+          setSelectedSv(null)
+        }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['site-visits'] })
+          queryClient.invalidateQueries({ queryKey: ['site-visit-counts'] })
+        }}
+      />
     </AppShell>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/modal'
 import { Input, Select, Textarea } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { leadsApi, usersApi } from '@/lib/api'
+import type { ApiLead } from '@/lib/api'
 
 const leadSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -31,13 +32,15 @@ type LeadFormData = z.infer<typeof leadSchema>
 
 interface AddLeadModalProps {
   open: boolean
+  lead?: ApiLead | null
   onClose: () => void
   onSuccess?: () => void
 }
 
-export function AddLeadModal({ open, onClose, onSuccess }: AddLeadModalProps) {
+export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isEdit = !!lead
 
   // Load employees from API for the assign dropdown
   const { data: employeesData } = useQuery({
@@ -56,11 +59,53 @@ export function AddLeadModal({ open, onClose, onSuccess }: AddLeadModalProps) {
     },
   })
 
+  // Sync state and form values when lead changes or modal opens
+  useEffect(() => {
+    if (open) {
+      if (lead) {
+        form.reset({
+          name: lead.name,
+          phone: lead.phone,
+          alternate_phone: lead.alternate_phone || '',
+          email: lead.email || '',
+          source: lead.source,
+          status: lead.status,
+          priority: lead.priority,
+          property_type: lead.property_type || '',
+          budget_min: lead.budget_min ? String(lead.budget_min) : '',
+          budget_max: lead.budget_max ? String(lead.budget_max) : '',
+          preferred_location: lead.preferred_location || '',
+          project_interest: lead.project_interest || '',
+          assigned_to: lead.assigned_to?.id ? String(lead.assigned_to.id) : '',
+          notes: lead.notes || '',
+        })
+      } else {
+        form.reset({
+          name: '',
+          phone: '',
+          alternate_phone: '',
+          email: '',
+          source: '',
+          status: 'new',
+          priority: 'medium',
+          property_type: '',
+          budget_min: '',
+          budget_max: '',
+          preferred_location: '',
+          project_interest: '',
+          assigned_to: '',
+          notes: '',
+        })
+      }
+      setError(null)
+    }
+  }, [open, lead, form])
+
   const handleSubmit = async (data: LeadFormData) => {
     setLoading(true)
     setError(null)
     try {
-      await leadsApi.create({
+      const payload = {
         name: data.name,
         phone: data.phone,
         alternate_phone: data.alternate_phone || undefined,
@@ -75,13 +120,19 @@ export function AddLeadModal({ open, onClose, onSuccess }: AddLeadModalProps) {
         project_interest: data.project_interest || undefined,
         assigned_to: data.assigned_to ? parseInt(data.assigned_to) : undefined,
         notes: data.notes || undefined,
-      })
+      }
+
+      if (isEdit && lead) {
+        await leadsApi.update(lead.id, payload)
+      } else {
+        await leadsApi.create(payload)
+      }
       form.reset()
       onSuccess?.()
       onClose()
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
-      const msg = e?.response?.data?.message ?? 'Failed to create lead. Please try again.'
+      const msg = e?.response?.data?.message ?? `Failed to ${isEdit ? 'update' : 'create'} lead. Please try again.`
       setError(msg)
     } finally {
       setLoading(false)
@@ -92,14 +143,14 @@ export function AddLeadModal({ open, onClose, onSuccess }: AddLeadModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Add New Lead"
-      description="Fill in the lead details. Required fields are marked with *"
+      title={isEdit ? "Edit Lead Details" : "Add New Lead"}
+      description={isEdit ? "Update details for this lead." : "Fill in the lead details. Required fields are marked with *"}
       size="lg"
       footer={
         <>
           <Button variant="ghost" size="sm" onClick={onClose} disabled={loading}>Cancel</Button>
           <Button variant="primary" size="sm" loading={loading} onClick={form.handleSubmit(handleSubmit)}>
-            Create Lead
+            {isEdit ? "Save Changes" : "Create Lead"}
           </Button>
         </>
       }
@@ -149,6 +200,10 @@ export function AddLeadModal({ open, onClose, onSuccess }: AddLeadModalProps) {
                 { value: 'contacted', label: 'Contacted' },
                 { value: 'qualified', label: 'Qualified' },
                 { value: 'site_visit', label: 'Site Visit' },
+                { value: 'negotiation', label: 'Negotiation' },
+                { value: 'closed_won', label: 'Closed Won' },
+                { value: 'closed_lost', label: 'Closed Lost' },
+                { value: 'on_hold', label: 'On Hold' },
               ]}
               {...form.register('status')}
             />
