@@ -189,6 +189,18 @@ export default function ImportPage() {
     setImportStatus('completed')
   }
 
+  const handleReset = () => {
+    setFile(null)
+    setParsedLeads([])
+    setError(null)
+    setImportStatus('idle')
+    setProgress({ current: 0, total: 0, success: 0, failed: 0 })
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+
   return (
     <AppShell>
       <AppHeader title="Import" subtitle="Bulk import leads from external sources" />

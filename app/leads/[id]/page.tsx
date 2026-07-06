@@ -262,7 +262,7 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
                 >
                   Edit
                 </Button>
-                {user?.access?.delete_leads && (
+                {user?.permissions?.includes('delete-leads') && (
                   <Button
                     variant="outline"
                     size="sm"
