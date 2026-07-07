@@ -27,7 +27,7 @@ const columnHelper = createColumnHelper<ApiLead>()
 export default function LeadsPage() {
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
   const { user } = useAuthStore()
-  const isAdmin = user?.roles?.includes('admin') ?? false
+  const isAdmin = user?.roles?.includes('admin') || user?.roles?.includes('superadmin') || false
   const queryClient = useQueryClient()
   const router = useRouter()
 

@@ -101,7 +101,7 @@ export default function DashboardPage() {
   const { data: unassignedLeadsData } = useQuery({
     queryKey: ['leads', 'unassigned-dashboard'],
     queryFn: () => leadsApi.list({ tab: 'unassigned', limit: 3 }).then((r) => r.data),
-    enabled: isAdmin && !user?.roles?.includes('superadmin'),
+    enabled: isAdmin,
   })
   const unassignedLeads = unassignedLeadsData?.data ?? []
 
@@ -109,7 +109,7 @@ export default function DashboardPage() {
   const { data: employeesData } = useQuery({
     queryKey: ['employees-dashboard'],
     queryFn: () => usersApi.employees().then((r) => r.data.data),
-    enabled: isAdmin && !user?.roles?.includes('superadmin'),
+    enabled: isAdmin,
   })
   const employees = employeesData ?? []
 
@@ -417,8 +417,8 @@ export default function DashboardPage() {
                 </section>
               )}
 
-              {/* Unassigned Leads Alert Queue for Admin */}
-              {user?.roles?.includes('admin') && !user?.roles?.includes('superadmin') && unassignedLeads.length > 0 && (
+              {/* Unassigned Leads Alert Queue for Admin / Superadmin */}
+              {isAdmin && unassignedLeads.length > 0 && (
                 <section className="bg-white rounded-cards p-6 border border-stone-surface">
                   <div className="flex items-center justify-between mb-4">
                     <div>

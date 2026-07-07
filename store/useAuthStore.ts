@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState>()(
 // Convenience selectors
 export const useIsAdmin = () => {
   const user = useAuthStore((s) => s.user)
-  return user?.roles?.includes('admin') ?? false
+  return user?.roles?.includes('admin') || user?.roles?.includes('superadmin') || false
 }
 
 export const useAccess = () => {
