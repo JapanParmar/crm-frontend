@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageHeader } from '@/components/layout/AppHeader'
 import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { useAppStore } from '@/store/useAppStore'
+import { useToastStore } from '@/store/useToastStore'
 import { rbacApi, ApiRole } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
@@ -129,6 +130,10 @@ export default function RbacPage() {
   const [editedPermissions, setEditedPermissions] = useState<string[]>([])
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  // Inline role creation state
+  const [inlineRoleName, setInlineRoleName] = useState('')
+  const [inlineRoleError, setInlineRoleError] = useState<string | null>(null)
+
   // Fetch Roles and Permissions
   const { data: roles = [], isLoading: isLoadingRoles } = useQuery({
     queryKey: ['roles'],
@@ -157,14 +162,17 @@ export default function RbacPage() {
       rbacApi.syncPermissions(roleId, permissions),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['roles'] })
+      const msg = res.data.message || 'Permissions updated successfully.'
+      useToastStore.getState().addToast(msg, 'success')
       setSaveStatus({
         type: 'success',
-        message: res.data.message || 'Permissions updated successfully.',
+        message: msg,
       })
       setTimeout(() => setSaveStatus(null), 4000)
     },
     onError: (err: any) => {
       const msg = err.response?.data?.message || 'Failed to update permissions.'
+      useToastStore.getState().addToast(msg, 'error')
       setSaveStatus({
         type: 'error',
         message: msg,
@@ -172,7 +180,7 @@ export default function RbacPage() {
     },
   })
 
-  // Create role mutation
+  // Create role mutation (modal)
   const createRoleMutation = useMutation({
     mutationFn: (name: string) => rbacApi.createRole({ name }),
     onSuccess: (res) => {
@@ -181,10 +189,29 @@ export default function RbacPage() {
       setNewRoleOpen(false)
       setNewRoleName('')
       setNewRoleError(null)
+      useToastStore.getState().addToast('Role created successfully.', 'success')
     },
     onError: (err: any) => {
       const msg = err.response?.data?.message || 'Failed to create role.'
       setNewRoleError(msg)
+      useToastStore.getState().addToast(msg, 'error')
+    },
+  })
+
+  // Create role mutation (inline)
+  const createRoleMutationInline = useMutation({
+    mutationFn: (name: string) => rbacApi.createRole({ name }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] })
+      setSelectedRoleId(res.data.data.id)
+      setInlineRoleName('')
+      setInlineRoleError(null)
+      useToastStore.getState().addToast('Role created successfully.', 'success')
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Failed to create role.'
+      setInlineRoleError(msg)
+      useToastStore.getState().addToast(msg, 'error')
     },
   })
 
@@ -210,6 +237,15 @@ export default function RbacPage() {
       return
     }
     createRoleMutation.mutate(newRoleName.trim())
+  }
+
+  const handleCreateRoleInline = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inlineRoleName.trim()) {
+      setInlineRoleError('Role name is required')
+      return
+    }
+    createRoleMutationInline.mutate(inlineRoleName.trim())
   }
 
   // Group permissions by category
@@ -287,52 +323,87 @@ export default function RbacPage() {
         </div>
 
         <div className="flex-1 overflow-hidden p-5 flex flex-col md:flex-row gap-5 max-w-6xl mx-auto w-full h-[calc(100vh-170px)]">
-          {/* Left Panel: Roles List */}
-          <div className="w-full md:w-64 flex-shrink-0 flex flex-col bg-white border border-stone-surface rounded-cards overflow-hidden h-[300px] md:h-full">
-            <div className="p-3.5 border-b border-stone-surface bg-[#fcfbf9]">
-              <span className="text-[10px] font-semibold text-muted-gray uppercase tracking-wider">
-                Workspace Roles
-              </span>
+          {/* Left Container */}
+          <div className="w-full md:w-64 flex-shrink-0 flex flex-col gap-4 h-[450px] md:h-full">
+            {/* Roles List Card */}
+            <div className="flex-1 flex flex-col bg-white border border-stone-surface rounded-cards overflow-hidden min-h-0">
+              <div className="p-3.5 border-b border-stone-surface bg-[#fcfbf9] flex-shrink-0">
+                <span className="text-[10px] font-semibold text-muted-gray uppercase tracking-wider">
+                  Workspace Roles
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-9 bg-stone-surface animate-pulse rounded-cards mb-1.5" />
+                  ))
+                ) : (
+                  roles.map((role) => {
+                    const isActive = role.id === selectedRoleId
+                    const isSuper = role.name === 'superadmin'
+                    return (
+                      <button
+                        key={role.id}
+                        onClick={() => {
+                          setSelectedRoleId(role.id)
+                          setEditedPermissions(role.permissions)
+                          setSaveStatus(null)
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-cards text-xs text-left transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-ink-black text-white font-bold'
+                            : 'hover:bg-stone-surface/50 text-body-brown font-medium'
+                        }`}
+                      >
+                        <span className="capitalize">{role.name === 'rbac' ? 'RBAC' : role.name.replace('-', ' ')}</span>
+                        {isSuper ? (
+                          <Lock className={`w-3.5 h-3.5 ${isActive ? 'text-sun-yellow' : 'text-muted-gray'}`} />
+                        ) : (
+                          <span
+                            className={`text-[9px] px-1.5 py-0.25 rounded-full font-bold ${
+                              isActive ? 'bg-white/20 text-white' : 'bg-stone-surface text-muted-gray border border-stone-border/30'
+                            }`}
+                          >
+                            {role.permissions.length}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })
+                )}
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-9 bg-stone-surface animate-pulse rounded-cards mb-1.5" />
-                ))
-              ) : (
-                roles.map((role) => {
-                  const isActive = role.id === selectedRoleId
-                  const isSuper = role.name === 'superadmin'
-                  return (
-                    <button
-                      key={role.id}
-                      onClick={() => {
-                        setSelectedRoleId(role.id)
-                        setEditedPermissions(role.permissions)
-                        setSaveStatus(null)
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-cards text-xs text-left transition-all ${
-                        isActive
-                          ? 'bg-ink-black text-white font-bold'
-                          : 'hover:bg-stone-surface/50 text-body-brown font-medium'
-                      }`}
-                    >
-                      <span className="capitalize">{role.name === 'rbac' ? 'RBAC' : role.name.replace('-', ' ')}</span>
-                      {isSuper ? (
-                        <Lock className={`w-3.5 h-3.5 ${isActive ? 'text-sun-yellow' : 'text-muted-gray'}`} />
-                      ) : (
-                        <span
-                          className={`text-[9px] px-1.5 py-0.25 rounded-full font-bold ${
-                            isActive ? 'bg-white/20 text-white' : 'bg-stone-surface text-muted-gray border border-stone-border/30'
-                          }`}
-                        >
-                          {role.permissions.length}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })
-              )}
+
+            {/* Dedicated Inline Add Role Card */}
+            <div className="bg-white border border-stone-surface rounded-cards p-4 flex flex-col gap-2.5 flex-shrink-0">
+              <span className="text-[10px] font-semibold text-muted-gray uppercase tracking-wider">
+                Create New Role
+              </span>
+              <form onSubmit={handleCreateRoleInline} className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="e.g. sales-manager"
+                  value={inlineRoleName}
+                  onChange={(e) => {
+                    setInlineRoleName(e.target.value)
+                    setInlineRoleError(null)
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-[#fcfbf9] border border-stone-surface rounded-inputs text-heading-charcoal placeholder-muted-gray focus:outline-none focus:border-ink-black transition-colors"
+                  style={{ outline: 'none' }}
+                  required
+                />
+                {inlineRoleError && (
+                  <p className="text-[10px] text-alert-red font-medium leading-none">{inlineRoleError}</p>
+                )}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full text-xs py-1.5"
+                  loading={createRoleMutationInline.isPending}
+                >
+                  Create Role
+                </Button>
+              </form>
             </div>
           </div>
 

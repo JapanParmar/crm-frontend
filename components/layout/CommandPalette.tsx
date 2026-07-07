@@ -37,6 +37,7 @@ export function CommandPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen, setAddLeadOpen } = useAppStore()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -244,12 +245,18 @@ export function CommandPalette() {
         className="relative w-full max-w-xl bg-white border border-stone-border rounded-cards shadow-premium overflow-hidden flex flex-col max-h-[70vh] animate-in fade-in zoom-in-95 duration-100"
       >
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3 px-4 border-b border-stone-surface" style={{ height: '48px' }}>
+        <div className="flex items-center gap-3 px-5 border-b border-stone-surface" style={{ height: '60px', paddingTop: '8px' }}>
           <Search className="w-4 h-4 text-muted-gray flex-shrink-0" />
           <input
             ref={inputRef}
             type="text"
-            className="flex-1 bg-transparent border-0 outline-none text-xs text-heading-charcoal placeholder-muted-gray py-2 focus:ring-0 focus:outline-none"
+            className={cn(
+              "flex-1 bg-[#fcfbf9] px-3 py-1.5 text-xs text-heading-charcoal placeholder-muted-gray rounded-inputs border transition-all duration-150",
+              isFocused ? "border-ink-black ring-1 ring-ink-black" : "border-stone-border"
+            )}
+            style={{ outline: 'none' }}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             placeholder="Type a lead name, page name, or action..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -257,13 +264,11 @@ export function CommandPalette() {
           {isLoading && <Loader2 className="w-3.5 h-3.5 text-muted-gray animate-spin flex-shrink-0" />}
           <button
             onClick={() => setCommandPaletteOpen(false)}
-            className="p-1 rounded hover:bg-stone-surface text-muted-gray hover:text-ink-black transition-colors"
+            className="p-1 rounded hover:bg-stone-surface text-muted-gray hover:text-ink-black transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
-        </div>
-
-        {/* Results List */}
+        </div>        {/* Results List */}
         <div className="flex-1 overflow-y-auto p-2 min-h-[200px]">
           {items.length === 0 ? (
             <div className="text-center py-12">
@@ -285,11 +290,12 @@ export function CommandPalette() {
                     <button
                       key={item.id}
                       onClick={item.action}
+                      onMouseEnter={() => setSelectedIndex(currentGlobalIndex)}
                       className={cn(
-                        "w-full flex items-center justify-between px-3 py-2 rounded-buttons text-left transition-all duration-75 group",
+                        "w-full flex items-center justify-between px-3 py-2 rounded-buttons text-left transition-all duration-75 group cursor-pointer",
                         isCurrent
-                          ? "bg-ink-black text-white"
-                          : "hover:bg-stone-surface text-body-brown"
+                          ? "bg-ink-black text-white font-bold"
+                          : "hover:bg-stone-surface text-body-brown font-medium"
                       )}
                     >
                       <div className="flex items-center gap-3 min-w-0">
