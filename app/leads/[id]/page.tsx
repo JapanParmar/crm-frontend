@@ -1,6 +1,6 @@
 'use client'
 
-import React, { use, useState } from 'react'
+import React, { use, useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -102,10 +102,25 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
   const [completeSvOpen, setCompleteSvOpen] = useState(false)
   const [selectedSv, setSelectedSv] = useState<ApiSiteVisit | null>(null)
 
-  const { data: leadData, isLoading } = useQuery({
+  const { data: leadData, isLoading, error } = useQuery({
     queryKey: ['lead', id],
     queryFn: () => leadsApi.get(id).then((r) => r.data.data),
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 403 || error?.response?.status === 404) {
+        return false
+      }
+      return failureCount < 1
+    },
   })
+
+  useEffect(() => {
+    if (error) {
+      const err = error as any
+      if (err.response?.status === 403 || err.response?.status === 404) {
+        router.replace('/leads')
+      }
+    }
+  }, [error, router])
 
   const { data: employeesData } = useQuery({
     queryKey: ['employees'],

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useToastStore } from '@/store/useToastStore'
 
 // ---------------------------------------------------------------------------
 // Axios instance — single source of truth for all API calls
@@ -26,6 +27,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
+    } else if (error.response?.status === 403 && typeof window !== 'undefined') {
+      const msg = error.response?.data?.message || 'Access denied: You do not have permission to perform this action.'
+      useToastStore.getState().addToast(msg, 'error')
+    } else if (error.response?.status >= 500 && typeof window !== 'undefined') {
+      const msg = error.response?.data?.message || 'Server error: Something went wrong. Please try again later.'
+      useToastStore.getState().addToast(msg, 'error')
     }
     return Promise.reject(error)
   }

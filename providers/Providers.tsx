@@ -4,6 +4,7 @@ import React, { useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
+import { ToastContainer } from '@/components/ui/toast'
 
 // Single QueryClient instance for the app lifetime
 const queryClient = new QueryClient({
@@ -57,6 +58,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGuard>{children}</AuthGuard>
+      <ToastContainer />
     </QueryClientProvider>
   )
 }
