@@ -37,6 +37,8 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   // Bulk assignment state using TanStack RowSelectionState
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
@@ -58,6 +60,8 @@ export default function LeadsPage() {
     status: statusFilter || undefined,
     source: sourceFilter || undefined,
     priority: priorityFilter || undefined,
+    date_from: dateFrom || undefined,
+    date_to: dateTo || undefined,
     page,
     limit: 25,
     sort_by: 'created_at',
@@ -257,14 +261,16 @@ export default function LeadsPage() {
             activeTab={activeTab}
             onTabChange={handleTabChange}
             actions={
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<UserPlus className="w-3.5 h-3.5" />}
-                onClick={() => setAddLeadOpen(true)}
-              >
-                Add Lead
-              </Button>
+              user?.permissions?.includes('create-leads') && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<UserPlus className="w-3.5 h-3.5" />}
+                  onClick={() => setAddLeadOpen(true)}
+                >
+                  Add Lead
+                </Button>
+              )
             }
           />
 
@@ -354,6 +360,47 @@ export default function LeadsPage() {
                 </option>
               ))}
             </select>
+
+            {/* Created From date picker */}
+            <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5">
+              <span className="text-[10px] uppercase font-bold text-muted-gray">From:</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => {
+                  setDateFrom(e.target.value)
+                  setPage(1)
+                }}
+                className="bg-transparent border-none text-xs text-body-brown focus:outline-none cursor-pointer"
+              />
+            </div>
+
+            {/* Created To date picker */}
+            <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5">
+              <span className="text-[10px] uppercase font-bold text-muted-gray">To:</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => {
+                  setDateTo(e.target.value)
+                  setPage(1)
+                }}
+                className="bg-transparent border-none text-xs text-body-brown focus:outline-none cursor-pointer"
+              />
+            </div>
+
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => {
+                  setDateFrom('')
+                  setDateTo('')
+                  setPage(1)
+                }}
+                className="text-[10px] font-bold text-alert-red hover:underline uppercase tracking-wider pl-1"
+              >
+                Clear Dates
+              </button>
+            )}
           </div>
         </div>
 

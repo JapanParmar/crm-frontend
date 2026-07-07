@@ -268,15 +268,17 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
                 <a href={`https://wa.me/91${lead.phone}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-buttons text-xs font-semibold border border-stone-border hover:bg-stone-surface transition-colors text-body-brown">
                   <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
                 </a>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<Pencil className="w-3.5 h-3.5" />}
-                  onClick={() => setEditOpen(true)}
-                  className="text-body-brown hover:text-ink-black"
-                >
-                  Edit
-                </Button>
+                {user?.permissions?.includes('update-leads') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Pencil className="w-3.5 h-3.5" />}
+                    onClick={() => setEditOpen(true)}
+                    className="text-body-brown hover:text-ink-black"
+                  >
+                    Edit
+                  </Button>
+                )}
                 {user?.permissions?.includes('delete-leads') && (
                   <Button
                     variant="outline"
@@ -304,14 +306,17 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
                   <React.Fragment key={stage.status}>
                     <button
                       onClick={() => updateStatusMutation.mutate(stage.status)}
-                      disabled={updateStatusMutation.isPending}
+                      disabled={updateStatusMutation.isPending || !user?.permissions?.includes('update-leads')}
                       className={cn(
                         'flex-1 min-w-[72px] py-2 px-2 rounded-buttons text-[10px] font-semibold border text-center transition-all duration-100',
                         isActive
                           ? 'bg-ink-black text-white border-ink-black'
                           : isDone
                           ? 'bg-grass-green/10 text-grass-green border-grass-green/30'
-                          : 'bg-stone-surface text-muted-gray border-stone-border hover:border-stone-border hover:text-body-brown'
+                          : 'bg-stone-surface text-muted-gray border-stone-border',
+                        user?.permissions?.includes('update-leads') && !isActive && !isDone
+                          ? 'hover:border-stone-border hover:text-body-brown cursor-pointer'
+                          : 'cursor-not-allowed'
                       )}
                     >
                       {stage.label}
@@ -492,23 +497,27 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wider">Scheduled Follow-ups</h3>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={<Plus className="w-3.5 h-3.5" />}
-                  onClick={() => setScheduleFuOpen(true)}
-                >
-                  Schedule Follow-up
-                </Button>
+                {user?.permissions?.includes('create-followups') && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={() => setScheduleFuOpen(true)}
+                  >
+                    Schedule Follow-up
+                  </Button>
+                )}
               </div>
 
               {followUps.length === 0 ? (
                 <div className="bg-white rounded-cards border border-stone-surface p-8 text-center">
                   <CalendarPlus className="w-8 h-8 text-muted-gray mx-auto mb-2" />
                   <p className="text-xs text-muted-gray mb-4">No follow-ups scheduled yet</p>
-                  <Button variant="outline" size="sm" onClick={() => setScheduleFuOpen(true)}>
-                    Schedule One Now
-                  </Button>
+                  {user?.permissions?.includes('create-followups') && (
+                    <Button variant="outline" size="sm" onClick={() => setScheduleFuOpen(true)}>
+                      Schedule One Now
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -571,23 +580,27 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wider">Scheduled Site Visits</h3>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={<Plus className="w-3.5 h-3.5" />}
-                  onClick={() => setScheduleSvOpen(true)}
-                >
-                  Schedule Site Visit
-                </Button>
+                {user?.permissions?.includes('create-site-visits') && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={() => setScheduleSvOpen(true)}
+                  >
+                    Schedule Site Visit
+                  </Button>
+                )}
               </div>
 
               {siteVisits.length === 0 ? (
                 <div className="bg-white rounded-cards border border-stone-surface p-8 text-center">
                   <Building2 className="w-8 h-8 text-muted-gray mx-auto mb-2" />
                   <p className="text-xs text-muted-gray mb-4">No site visits scheduled yet</p>
-                  <Button variant="outline" size="sm" onClick={() => setScheduleSvOpen(true)}>
-                    Schedule One Now
-                  </Button>
+                  {user?.permissions?.includes('create-site-visits') && (
+                    <Button variant="outline" size="sm" onClick={() => setScheduleSvOpen(true)}>
+                      Schedule One Now
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">

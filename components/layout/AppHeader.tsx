@@ -110,14 +110,16 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
         </button>
 
         {/* Add Lead */}
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<Plus className="w-3.5 h-3.5" />}
-          onClick={() => setAddLeadOpen(true)}
-        >
-          Add Lead
-        </Button>
+        {currentUser?.permissions?.includes('create-leads') && (
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus className="w-3.5 h-3.5" />}
+            onClick={() => setAddLeadOpen(true)}
+          >
+            Add Lead
+          </Button>
+        )}
 
         {/* Custom Actions */}
         {actions}

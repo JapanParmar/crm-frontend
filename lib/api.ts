@@ -54,7 +54,7 @@ export const authApi = {
 // Dashboard
 // ---------------------------------------------------------------------------
 export const dashboardApi = {
-  get: () => api.get<ApiSuccessResponse<DashboardData>>('/dashboard'),
+  get: (params?: { date_from?: string; date_to?: string }) => api.get<ApiSuccessResponse<DashboardData>>('/dashboard', { params }),
 }
 
 // ---------------------------------------------------------------------------

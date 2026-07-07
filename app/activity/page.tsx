@@ -43,6 +43,8 @@ const ACTIVITY_COLORS: Record<string, { color: string; bg: string }> = {
 
 export default function ActivityLogPage() {
   const [page, setPage] = useState(1)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['activities', page],
@@ -51,6 +53,20 @@ export default function ActivityLogPage() {
 
   const activities = data?.data ?? []
   const meta = data?.meta
+
+  // Filter activities client-side based on date inputs
+  const filteredActivities = React.useMemo(() => {
+    return activities.filter((act) => {
+      const actDate = new Date(act.created_at)
+      if (dateFrom && actDate < new Date(dateFrom)) return false
+      if (dateTo) {
+        const endLimit = new Date(dateTo)
+        endLimit.setHours(23, 59, 59, 999)
+        if (actDate > endLimit) return false
+      }
+      return true
+    })
+  }, [activities, dateFrom, dateTo])
 
   return (
     <AppShell>
@@ -62,6 +78,48 @@ export default function ActivityLogPage() {
             title="Activity Feed"
             description="Real-time workspace activity audit log"
           />
+          <div className="px-4 py-2.5 flex items-center justify-end gap-2 flex-wrap border-t border-stone-surface/40">
+            {/* Created From date picker */}
+            <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5">
+              <span className="text-[10px] uppercase font-bold text-muted-gray">From:</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => {
+                  setDateFrom(e.target.value)
+                  setPage(1)
+                }}
+                className="bg-transparent border-none text-xs text-body-brown focus:outline-none cursor-pointer"
+              />
+            </div>
+
+            {/* Created To date picker */}
+            <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5">
+              <span className="text-[10px] uppercase font-bold text-muted-gray">To:</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => {
+                  setDateTo(e.target.value)
+                  setPage(1)
+                }}
+                className="bg-transparent border-none text-xs text-body-brown focus:outline-none cursor-pointer"
+              />
+            </div>
+
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => {
+                  setDateFrom('')
+                  setDateTo('')
+                  setPage(1)
+                }}
+                className="text-[10px] font-bold text-alert-red hover:underline uppercase tracking-wider pl-1"
+              >
+                Clear Dates
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto p-5">
@@ -78,14 +136,14 @@ export default function ActivityLogPage() {
                   </div>
                 ))}
               </div>
-            ) : activities.length === 0 ? (
+            ) : filteredActivities.length === 0 ? (
               <div className="text-center py-16">
                 <ScrollText className="w-8 h-8 text-muted-gray mx-auto mb-2" />
                 <p className="text-xs text-muted-gray">No activity log records found</p>
               </div>
             ) : (
               <div className="space-y-6 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-surface">
-                {activities.map((activity: ApiActivity) => {
+                {filteredActivities.map((activity: ApiActivity) => {
                   const Icon = ACTIVITY_ICONS[activity.type] ?? Activity
                   const colors = ACTIVITY_COLORS[activity.type] ?? { color: 'var(--color-body-brown)', bg: 'var(--color-stone-surface)' }
                   return (
