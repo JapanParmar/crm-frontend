@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -22,26 +22,22 @@ const PUBLIC_PATHS = ['/login']
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, token } = useAuthStore()
-  const [checked, setChecked] = useState(false)
+  const { isAuthenticated, token, _hasHydrated } = useAuthStore()
 
   useEffect(() => {
-    const isPublic = PUBLIC_PATHS.includes(pathname)
-    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('crm_token') : null
-
-    // Wait for Zustand store to hydrate if there is a token in localStorage
-    if (!isAuthenticated && storedToken) {
+    // Wait for Zustand store to hydrate
+    if (!_hasHydrated) {
       return
     }
+
+    const isPublic = PUBLIC_PATHS.includes(pathname)
 
     if (!isAuthenticated && !token && !isPublic) {
       router.replace('/login')
     } else if ((isAuthenticated || token) && isPublic) {
       router.replace('/')
-    } else {
-      setChecked(true)
     }
-  }, [isAuthenticated, token, pathname, router])
+  }, [_hasHydrated, isAuthenticated, token, pathname, router])
 
   const isPublic = PUBLIC_PATHS.includes(pathname)
 
@@ -49,7 +45,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   if (isPublic) return <>{children}</>
 
   // Show nothing until auth check complete (prevents flash)
-  if (!checked) return null
+  if (!_hasHydrated) return null
+
+  // Double check auth status before rendering protected content
+  if (!isAuthenticated && !token) return null
 
   return <>{children}</>
 }

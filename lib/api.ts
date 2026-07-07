@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '@/store/useAuthStore'
 
 // ---------------------------------------------------------------------------
 // Axios instance — single source of truth for all API calls
@@ -23,8 +24,7 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('crm_token')
-      localStorage.removeItem('crm_user')
+      useAuthStore.getState().clearAuth()
       window.location.href = '/login'
     }
     return Promise.reject(error)
