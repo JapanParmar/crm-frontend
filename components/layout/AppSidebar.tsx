@@ -74,6 +74,13 @@ export function AppSidebar() {
     }
   }
 
+  // Auto-close sidebar on mobile after nav click
+  const handleNavClick = () => {
+    if (!sidebarCollapsed && window.innerWidth < 768) {
+      toggleSidebar()
+    }
+  }
+
   const roleLabel = currentUser?.roles?.includes('superadmin')
     ? 'Super Administrator'
     : currentUser?.roles?.includes('admin')
@@ -82,10 +89,10 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Backdrop overlay for mobile */}
+      {/* Backdrop overlay for mobile — shown when sidebar is open */}
       {!sidebarCollapsed && (
         <div
-          className="fixed inset-0 bg-[#000000]/15 z-20 md:hidden transition-opacity duration-200"
+          className="fixed inset-0 bg-black/30 z-20 md:hidden"
           onClick={toggleSidebar}
         />
       )}
@@ -93,13 +100,17 @@ export function AppSidebar() {
       <aside
         className={cn(
           'fixed left-0 top-0 bottom-0 z-30 flex flex-col transition-all duration-200 ease-in-out select-none',
-          sidebarCollapsed ? 'w-14 md:w-14 -translate-x-full md:translate-x-0' : 'w-[220px] translate-x-0'
+          // Mobile: slide out when collapsed, slide in when open
+          // Desktop: collapse to icon-only, expand to full
+          sidebarCollapsed
+            ? '-translate-x-full md:translate-x-0 w-[220px] md:w-14'
+            : 'translate-x-0 w-[220px]'
         )}
         style={{ backgroundColor: 'var(--color-stone-surface)', borderRight: '1px solid var(--color-stone-border)' }}
       >
         {/* Logo */}
         <div
-          className="flex items-center gap-2.5 px-3 border-b"
+          className="flex items-center gap-2.5 px-3 border-b flex-shrink-0"
           style={{ height: '56px', borderColor: 'var(--color-stone-border)' }}
         >
           <div
@@ -108,26 +119,25 @@ export function AppSidebar() {
           >
             <Building2 className="w-4 h-4 text-ink-black" />
           </div>
-          {!sidebarCollapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="text-ink-black text-sm font-extrabold tracking-tight leading-tight truncate">BRICKroots</span>
-              <span className="text-[10px] leading-tight font-medium" style={{ color: 'var(--color-body-brown)' }}>Enterprise</span>
-            </div>
-          )}
+          <div className={cn('flex flex-col min-w-0', sidebarCollapsed && 'md:hidden')}>
+            <span className="text-ink-black text-sm font-extrabold tracking-tight leading-tight truncate">BRICKroots</span>
+            <span className="text-[10px] leading-tight font-medium" style={{ color: 'var(--color-body-brown)' }}>Enterprise</span>
+          </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
           {NAV_ITEMS.map((group) => (
             <div key={group.section}>
-              {!sidebarCollapsed && (
-                <p
-                  className="px-2 mb-1 text-xs font-semibold tracking-wider uppercase"
-                  style={{ color: 'var(--color-muted-gray)' }}
-                >
-                  {group.section}
-                </p>
-              )}
+              <p
+                className={cn(
+                  'px-2 mb-1 text-xs font-semibold tracking-wider uppercase',
+                  sidebarCollapsed ? 'hidden md:hidden' : 'block'
+                )}
+                style={{ color: 'var(--color-muted-gray)' }}
+              >
+                {group.section}
+              </p>
               <ul className="space-y-0.5">
                 {(group.items as { label: string; icon: React.ElementType; href: string }[]).map((item) => {
                   const Icon = item.icon
@@ -136,12 +146,13 @@ export function AppSidebar() {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        onClick={handleNavClick}
                         className={cn(
-                          'flex items-center gap-2.5 rounded-buttons px-3 py-1.5 text-xs transition-colors duration-100',
+                          'flex items-center gap-2.5 rounded-buttons px-3 py-2.5 md:py-1.5 text-xs transition-colors duration-100',
                           isActive
                             ? 'font-semibold border border-stone-border'
                             : 'hover:text-ink-black hover:bg-cream-canvas/50 font-medium',
-                          sidebarCollapsed && 'justify-center px-2'
+                          sidebarCollapsed && 'md:justify-center md:px-2'
                         )}
                         style={{
                           color: isActive ? 'var(--color-ink-black)' : 'var(--color-body-brown)',
@@ -157,7 +168,7 @@ export function AppSidebar() {
                             stroke: isActive ? 'var(--color-ink-black)' : 'var(--color-body-brown)',
                           }}
                         />
-                        {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                        <span className={cn('truncate', sidebarCollapsed && 'md:hidden')}>{item.label}</span>
                       </Link>
                     </li>
                   )
@@ -170,36 +181,35 @@ export function AppSidebar() {
         {/* User Profile + Logout */}
         {currentUser && (
           <div
-            className="border-t p-2"
+            className="border-t p-2 flex-shrink-0"
             style={{ borderColor: 'var(--color-stone-border)' }}
           >
             <div className="flex items-center gap-2.5">
               <Avatar name={currentUser.name} size="sm" className="flex-shrink-0" />
-              {!sidebarCollapsed && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-ink-black truncate">{currentUser.name}</p>
-                  <p className="text-[10px] truncate" style={{ color: 'var(--color-muted-gray)' }}>
-                    {roleLabel}
-                  </p>
-                </div>
-              )}
-              {!sidebarCollapsed && (
-                <button
-                  onClick={handleLogout}
-                  title="Sign out"
-                  className="p-1 rounded hover:bg-stone-surface text-muted-gray hover:text-alert-red transition-colors flex-shrink-0"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <div className={cn('flex-1 min-w-0', sidebarCollapsed && 'md:hidden')}>
+                <p className="text-xs font-bold text-ink-black truncate">{currentUser.name}</p>
+                <p className="text-[10px] truncate" style={{ color: 'var(--color-muted-gray)' }}>
+                  {roleLabel}
+                </p>
+              </div>
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                className={cn(
+                  'p-2 rounded hover:bg-stone-surface text-muted-gray hover:text-alert-red transition-colors flex-shrink-0',
+                  sidebarCollapsed && 'md:mx-auto'
+                )}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )}
 
-        {/* Collapse Toggle */}
+        {/* Collapse Toggle — desktop only */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-14 w-6 h-6 rounded-full flex items-center justify-center border transition-colors duration-100 z-10"
+          className="absolute -right-3 top-14 w-6 h-6 rounded-full hidden md:flex items-center justify-center border transition-colors duration-100 z-10"
           style={{
             backgroundColor: 'var(--color-cream-canvas)',
             borderColor: 'var(--color-stone-border)',

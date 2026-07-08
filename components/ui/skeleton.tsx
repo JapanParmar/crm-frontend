@@ -11,7 +11,7 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn('bg-gray-100 rounded animate-pulse', className)}
+      className={cn('bg-cloud/60 rounded animate-pulse', className)}
     />
   )
 }
@@ -20,7 +20,7 @@ export function TableSkeleton({ rows = 10, cols = 7 }: { rows?: number; cols?: n
   return (
     <div className="flex flex-col">
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-fog">
+        <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-stone-border">
           <Skeleton className="w-4 h-4 rounded" />
           {Array.from({ length: cols - 1 }, (_, j) => (
             <Skeleton
@@ -36,7 +36,7 @@ export function TableSkeleton({ rows = 10, cols = 7 }: { rows?: number; cols?: n
 
 export function StatCardSkeleton() {
   return (
-    <div className="bg-white border border-fog rounded-cards p-4 flex flex-col gap-2">
+    <div className="bg-white border border-stone-border rounded-cards p-4 flex flex-col gap-2">
       <Skeleton className="w-20 h-3" />
       <Skeleton className="w-16 h-6" />
       <Skeleton className="w-24 h-2.5" />

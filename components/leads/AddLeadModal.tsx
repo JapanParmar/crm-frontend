@@ -193,7 +193,7 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
         {/* Contact Info */}
         <div>
           <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wide mb-2.5">Contact Information</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label="Full Name" required placeholder="e.g. Rahul Sharma" error={form.formState.errors.name?.message} {...form.register('name')} />
             <Input label="Phone Number" required placeholder="10-digit mobile" maxLength={15} error={form.formState.errors.phone?.message} {...form.register('phone')} />
             <Input label="Alternate Phone" placeholder="Optional" {...form.register('alternate_phone')} />
@@ -204,7 +204,7 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
         {/* Lead Details */}
         <div>
           <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wide mb-2.5">Lead Details</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <Select label="Source" required placeholder="Select source" error={form.formState.errors.source?.message}
               options={[
                 { value: 'magicbricks', label: 'MagicBricks' },
@@ -259,7 +259,7 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
         {/* Property Interest */}
         <div>
           <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wide mb-2.5">Property Interest</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select label="Property Type" placeholder="Select type"
               options={[
                 { value: 'apartment', label: 'Apartment' },
@@ -277,10 +277,10 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
             <Input label="Max Budget (₹)" type="number" placeholder="e.g. 10000000" {...form.register('budget_max')} />
             <Input label="City" placeholder="e.g. Bengaluru" {...form.register('city')} />
             <Input label="Locality" placeholder="e.g. Whitefield" {...form.register('locality')} />
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Input label="Project Interest" placeholder="e.g. Prestige Skyline, Brigade Utopia" {...form.register('project_interest')} />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Input label="Preferred Location (General Description)" placeholder="e.g. near Metro, high floor" {...form.register('preferred_location')} />
             </div>
           </div>
@@ -289,7 +289,7 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
         {/* Assignment — loaded from API */}
         <div>
           <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wide mb-2.5">Assignment</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
               label="Assign To"
               placeholder={employees.length === 0 ? 'Loading team…' : 'Select team member'}
@@ -302,7 +302,7 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
         {/* Portal References */}
         <div>
           <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wide mb-2.5">Portal References</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label="Listing ID" placeholder="e.g. MB-100293, 99A-928" {...form.register('listing_id')} />
             <Input label="Lead Provider Reference" placeholder="e.g. Housing-88371" {...form.register('lead_provider_ref')} />
           </div>

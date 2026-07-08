@@ -69,11 +69,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const isPublic = PUBLIC_PATHS.includes(pathname)
 
-  // Always show public pages immediately
-  if (isPublic) return <>{children}</>
-
   // Show nothing until auth check complete (prevents flash)
   if (!_hasHydrated) return null
+
+  // Always show public pages immediately if hydration is complete
+  if (isPublic) return <>{children}</>
 
   // Double check auth status before rendering protected content
   if (!isAuthenticated && !token) return null

@@ -127,8 +127,8 @@ export default function FollowUpsPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-5 bg-cream-canvas">
-          <div className="space-y-3 max-w-3xl">
+        <div className="flex-1 overflow-auto p-3 md:p-5 bg-cream-canvas">
+          <div className="space-y-3 max-w-3xl mx-auto">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="h-20 bg-white border border-stone-surface rounded-cards animate-pulse" />
@@ -193,11 +193,50 @@ export default function FollowUpsPage() {
                         {fu.outcome && (
                           <p className="text-xs text-grass-green mt-1 font-semibold">Outcome: {fu.outcome}</p>
                         )}
+
+                        {/* Actions for scheduled — below content on mobile */}
+                        {fu.status === 'scheduled' && (
+                          <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-stone-surface/60 sm:hidden">
+                            {fu.lead?.phone && (
+                              <>
+                                <a href={`tel:${fu.lead.phone}`} className="p-2 rounded-lg bg-stone-surface text-body-brown touch-manipulation" title="Call">
+                                  <Phone className="w-3.5 h-3.5" />
+                                </a>
+                                <a href={`https://wa.me/91${fu.lead.phone}`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-stone-surface text-body-brown touch-manipulation" title="WhatsApp">
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                </a>
+                              </>
+                            )}
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              onClick={() => {
+                                setSelectedFu(fu)
+                                setCompleteFuOpen(true)
+                              }}
+                            >
+                              Complete
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="text-alert-red hover:bg-alert-red/5"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to mark this follow-up as missed?')) {
+                                  missFuMutation.mutate(fu.id)
+                                }
+                              }}
+                              disabled={missFuMutation.isPending}
+                            >
+                              Missed
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Actions for scheduled */}
+                      {/* Actions for scheduled — right side on desktop */}
                       {fu.status === 'scheduled' && (
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
                           {fu.lead?.phone && (
                             <>
                               <a href={`tel:${fu.lead.phone}`} className="p-1.5 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black transition-colors" title="Call">

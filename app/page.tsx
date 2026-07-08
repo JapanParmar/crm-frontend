@@ -405,16 +405,16 @@ export default function DashboardPage() {
 
       <main className="flex-1 overflow-auto bg-cream-canvas" style={{ paddingTop: '56px' }}>
         {/* Hero */}
-        <div className="relative px-8 py-10 bg-cream-canvas border-b border-stone-surface overflow-hidden">
-          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex-1 text-center md:text-left">
-              <div className="inline-flex items-center px-2 py-0.5 rounded-badges bg-ember text-white font-semibold text-xs mb-3 select-none">
+        <div className="relative px-4 md:px-8 py-7 md:py-10 bg-cream-canvas border-b border-stone-surface overflow-hidden">
+          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 relative z-10">
+            <div className="flex-1">
+              <div className="inline-flex items-center px-2 py-0.5 rounded-badges bg-ember text-white font-semibold text-xs mb-2 md:mb-3 select-none">
                 BRICKroots CRM Workspace
               </div>
-              <h1 className="font-family-display text-4xl md:text-5xl text-ink-black tracking-tight leading-none mb-3">
+              <h1 className="font-family-display text-2xl sm:text-3xl md:text-5xl text-ink-black tracking-tight leading-tight mb-2 md:mb-3">
                 Infrastructure-grade lead telemetry.
               </h1>
-              <p className="text-body-brown font-medium text-sm md:text-base max-w-2xl leading-relaxed">
+              <p className="text-body-brown font-medium text-xs md:text-base max-w-2xl leading-relaxed">
                 Track leads, orchestrate site visits, and optimize your sales conversion funnel on a quiet, high-density dashboard.
               </p>
             </div>
@@ -422,7 +422,7 @@ export default function DashboardPage() {
               <div className="flex-shrink-0 flex items-center gap-3 select-none">
                 <button
                   onClick={() => setAddLeadOpen(true)}
-                  className="bg-obsidian text-snow hover:opacity-90 active:scale-95 px-4 py-2.5 rounded-buttons text-sm font-semibold transition-all border border-slate"
+                  className="bg-obsidian text-snow hover:opacity-90 active:scale-95 px-4 py-2.5 rounded-buttons text-sm font-semibold transition-all border border-slate touch-manipulation"
                 >
                   + New Lead
                 </button>
@@ -432,7 +432,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Date Filter Scope Bar */}
-        <div className="max-w-6xl mx-auto px-8 pt-6 flex items-center justify-between gap-4 flex-wrap select-none">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 pt-4 md:pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap select-none">
           <div className="flex items-center gap-2">
             <span className="text-xs font-extrabold text-heading-charcoal uppercase tracking-wider">Dashboard Scope:</span>
             <span className="text-xs text-body-brown font-medium">Filter metrics & trends by date range</span>
@@ -475,7 +475,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI Stats */}
-        <section className="px-8 py-8 max-w-6xl mx-auto">
+        <section className="px-4 md:px-8 py-5 md:py-8 max-w-6xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {dashboardLoading ? (
               Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -511,31 +511,31 @@ export default function DashboardPage() {
         </section>
 
         {/* Main Content */}
-        <div className="max-w-6xl mx-auto px-8 pb-12">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 pb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
             {/* Left Column */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-4 md:space-y-8">
 
               {/* Business Analytics Chart Section */}
-              <section className="bg-white rounded-cards p-6 border border-stone-surface">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="font-family-display text-lg text-heading-charcoal tracking-tight">Business Performance Trends</h2>
+              <section className="bg-white rounded-cards p-4 md:p-6 border border-stone-surface">
+                <div className="flex items-start md:items-center justify-between mb-4 md:mb-6 gap-2">
+                  <div className="min-w-0">
+                    <h2 className="font-family-display text-base md:text-lg text-heading-charcoal tracking-tight">Business Performance Trends</h2>
                     <p className="text-xs text-body-brown">Lead volume vs closed conversions over time</p>
                   </div>
-                  <div className="flex items-center gap-4 text-xs font-semibold select-none">
+                  <div className="flex items-center gap-3 text-xs font-semibold select-none flex-shrink-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-sun-yellow inline-block" />
+                      <span className="w-2 h-2 rounded-full bg-sun-yellow inline-block" />
                       <span className="text-heading-charcoal">Leads</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-grass-green inline-block" />
-                      <span className="text-heading-charcoal">Closed Won</span>
+                      <span className="w-2 h-2 rounded-full bg-grass-green inline-block" />
+                      <span className="text-heading-charcoal">Won</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="w-full h-[180px] mt-2">
+                <div className="w-full h-[160px] md:h-[180px] mt-2">
                   <Line data={performanceChartData} options={performanceChartOptions} />
                 </div>
               </section>
@@ -874,7 +874,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Right Column */}
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
 
               {/* Personal Target Goal */}
               {!isAdmin && (

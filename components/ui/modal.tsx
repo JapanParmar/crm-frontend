@@ -40,31 +40,36 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      {/* Modal */}
+      {/* Modal — bottom sheet on mobile, centered card on sm+ */}
       <div
         className={cn(
-          'relative w-full bg-canvas border border-deep-ink rounded-cards flex flex-col max-h-[90vh]',
+          'relative w-full bg-canvas border border-deep-ink flex flex-col max-h-[92vh] sm:max-h-[90vh]',
+          'rounded-t-[24px] sm:rounded-cards',
           widths[size]
         )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-8 h-1 bg-stone-border rounded-full" />
+        </div>
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-deep-ink">
+        <div className="flex items-start justify-between px-5 py-3.5 border-b border-deep-ink flex-shrink-0">
           <div>
             <h2 id="modal-title" className="text-sm font-semibold text-deep-ink">{title}</h2>
             {description && <p className="text-xs text-slate mt-0.5">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="text-slate hover:text-deep-ink transition-colors rounded-full p-1 hover:bg-soft-meadow"
+            className="text-slate hover:text-deep-ink transition-colors rounded-full p-2 hover:bg-soft-meadow touch-manipulation"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -78,7 +83,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
 
         {/* Footer */}
         {footer && (
-          <div className="px-5 py-3.5 border-t border-deep-ink flex items-center justify-end gap-2 bg-soft-meadow rounded-b-cards">
+          <div className="px-5 py-3.5 border-t border-deep-ink flex items-center justify-end gap-2 bg-soft-meadow rounded-b-cards flex-shrink-0 pb-safe">
             {footer}
           </div>
         )}

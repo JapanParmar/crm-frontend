@@ -247,46 +247,51 @@ export function DataTable<TData>({
 
       {/* Pagination Controls */}
       {hasPagination && pageCount && pageCount > 1 && (
-        <div className="border-t border-stone-surface bg-white px-4 py-3.5 flex items-center justify-between mt-4 rounded-cards border">
-          <p className="text-xs text-body-brown">
-            Page {activePage} of {pageCount} {totalCount !== undefined && `· ${totalCount.toLocaleString()} items`}
+        <div className="border-t border-stone-surface bg-white px-3 md:px-4 py-3 flex items-center justify-between mt-4 rounded-cards border gap-2">
+          <p className="text-xs text-body-brown whitespace-nowrap">
+            <span className="hidden sm:inline">Page </span>{activePage}<span className="hidden sm:inline"> of {pageCount}</span>{totalCount !== undefined && <span className="hidden sm:inline"> · {totalCount.toLocaleString()} items</span>}
           </p>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => onPageChange?.(pageIndex - 1)}
               disabled={pageIndex === 0}
-              className="p-1.5 rounded-buttons border border-stone-border text-body-brown hover:text-ink-black hover:bg-stone-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-buttons border border-stone-border text-body-brown hover:text-ink-black hover:bg-stone-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation"
               aria-label="Previous page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             
-            {/* Pagination window */}
-            {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
-              const startPage = Math.max(0, Math.min(pageCount - 5, pageIndex - 2))
-              const pIndex = startPage + i
-              const pNumber = pIndex + 1
-              if (pIndex < 0 || pIndex >= pageCount) return null
-              return (
-                <button
-                  key={pIndex}
-                  onClick={() => onPageChange?.(pIndex)}
-                  className={cn(
-                    'w-7.5 h-7.5 rounded-buttons text-xs font-semibold border transition-colors',
-                    pIndex === pageIndex
-                      ? 'bg-ink-black text-white border-ink-black'
-                      : 'border-stone-border text-body-brown hover:bg-stone-surface'
-                  )}
-                >
-                  {pNumber}
-                </button>
-              )
-            })}
+            {/* Pagination window — hidden on mobile */}
+            <div className="hidden sm:flex items-center gap-1">
+              {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
+                const startPage = Math.max(0, Math.min(pageCount - 5, pageIndex - 2))
+                const pIndex = startPage + i
+                const pNumber = pIndex + 1
+                if (pIndex < 0 || pIndex >= pageCount) return null
+                return (
+                  <button
+                    key={pIndex}
+                    onClick={() => onPageChange?.(pIndex)}
+                    className={cn(
+                      'w-8 h-8 flex items-center justify-center rounded-buttons text-xs font-semibold border transition-colors touch-manipulation',
+                      pIndex === pageIndex
+                        ? 'bg-ink-black text-white border-ink-black'
+                        : 'border-stone-border text-body-brown hover:bg-stone-surface'
+                    )}
+                  >
+                    {pNumber}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Mobile page indicator */}
+            <span className="sm:hidden text-xs text-body-brown px-2">{activePage} / {pageCount}</span>
 
             <button
               onClick={() => onPageChange?.(pageIndex + 1)}
               disabled={pageIndex === pageCount - 1}
-              className="p-1.5 rounded-buttons border border-stone-border text-body-brown hover:text-ink-black hover:bg-stone-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-buttons border border-stone-border text-body-brown hover:text-ink-black hover:bg-stone-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation"
               aria-label="Next page"
             >
               <ChevronRight className="w-4 h-4" />

@@ -17,8 +17,9 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { formatDate, formatCurrency } from '@/lib/utils'
-import { Search, UserPlus, Phone, MessageSquare } from 'lucide-react'
+import { Search, UserPlus, Phone, MessageSquare, CalendarPlus } from 'lucide-react'
 import Link from 'next/link'
+import { ScheduleFollowUpModal } from '@/components/leads/ScheduleFollowUpModal'
 
 type Tab = 'all' | 'my' | 'unassigned' | 'today'
 
@@ -43,6 +44,10 @@ export default function LeadsPage() {
   // Bulk assignment state using TanStack RowSelectionState
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  
+  // Follow-up scheduling states
+  const [followUpOpen, setFollowUpOpen] = useState(false)
+  const [selectedFollowUpLead, setSelectedFollowUpLead] = useState<ApiLead | null>(null)
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -160,7 +165,6 @@ export default function LeadsPage() {
 
     columnHelper.accessor('source', {
       header: 'Source',
-      meta: { className: 'hidden sm:table-cell' },
       cell: (info) => <LeadSourceBadge source={info.getValue() as never} />,
     }),
 
@@ -171,13 +175,11 @@ export default function LeadsPage() {
 
     columnHelper.accessor('priority', {
       header: 'Priority',
-      meta: { className: 'hidden md:table-cell' },
       cell: (info) => <LeadPriorityBadge priority={info.getValue() as never} />,
     }),
 
     columnHelper.accessor('assigned_to', {
       header: 'Assigned To',
-      meta: { className: 'hidden lg:table-cell' },
       cell: ({ row }) => {
         const assigned = row.original.assigned_to
         if (!assigned) return <span className="text-muted-gray italic">Unassigned</span>
@@ -192,19 +194,18 @@ export default function LeadsPage() {
 
     columnHelper.accessor('budget_max', {
       header: 'Budget',
-      meta: { className: 'hidden lg:table-cell font-semibold text-heading-charcoal' },
+      meta: { className: 'font-semibold text-heading-charcoal' },
       cell: (info) => (info.getValue() ? formatCurrency(info.getValue() as number) : '—'),
     }),
 
     columnHelper.accessor('score', {
       header: 'Score',
-      meta: { className: 'hidden xl:table-cell' },
       cell: (info) => <LeadScore score={info.getValue()} />,
     }),
 
     columnHelper.accessor('created_at', {
       header: 'Created',
-      meta: { className: 'hidden xl:table-cell text-body-brown' },
+      meta: { className: 'text-body-brown' },
       cell: (info) => formatDate(info.getValue(), 'short'),
     }),
 
@@ -215,7 +216,7 @@ export default function LeadsPage() {
         const lead = row.original
         return (
           <div
-            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="flex items-center gap-1"
             onClick={(e) => e.stopPropagation()}
           >
             <a
@@ -234,11 +235,21 @@ export default function LeadsPage() {
             >
               <MessageSquare className="w-3.5 h-3.5" />
             </a>
+            <button
+              onClick={() => {
+                setSelectedFollowUpLead(lead)
+                setFollowUpOpen(true)
+              }}
+              className="p-1 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black"
+              title="Schedule Follow-up"
+            >
+              <CalendarPlus className="w-3.5 h-3.5" />
+            </button>
           </div>
         )
       },
     }),
-  ], [])
+  ], [setSelectedFollowUpLead, setFollowUpOpen])
 
   return (
     <AppShell>
@@ -251,6 +262,20 @@ export default function LeadsPage() {
           queryClient.invalidateQueries({ queryKey: ['leads-counts'] })
         }}
       />
+      {selectedFollowUpLead && (
+        <ScheduleFollowUpModal
+          open={followUpOpen}
+          leadId={selectedFollowUpLead.id}
+          onClose={() => {
+            setFollowUpOpen(false)
+            setSelectedFollowUpLead(null)
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['leads'] })
+            queryClient.invalidateQueries({ queryKey: ['leads-counts'] })
+          }}
+        />
+      )}
 
       <main className="flex flex-col h-full bg-cream-canvas relative" style={{ paddingTop: '56px' }}>
         <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10 flex-shrink-0">
@@ -294,15 +319,15 @@ export default function LeadsPage() {
           )}
 
           {/* Filters Row */}
-          <div className="flex items-center gap-2 px-4 py-2.5 flex-wrap">
+          <div className="flex items-center gap-2 px-3 md:px-4 py-2.5 overflow-x-auto scrollbar-none">
             {/* Search */}
-            <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <div className="relative flex-shrink-0 w-[180px] sm:w-[200px] sm:flex-1 sm:max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-gray" />
               <input
                 type="search"
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search name, phone, lead ID…"
+                placeholder="Search name, phone…"
                 className="w-full h-9 pl-8 pr-3 rounded-lg border border-stone-border bg-white text-xs focus:outline-none focus:border-ink-black focus:ring-1 focus:ring-ink-black"
               />
             </div>
@@ -315,7 +340,7 @@ export default function LeadsPage() {
                 setPage(1)
                 setRowSelection({})
               }}
-              className="h-9 px-2 rounded-lg border border-stone-border bg-white text-xs text-body-brown focus:outline-none focus:border-ink-black cursor-pointer"
+              className="h-9 px-2 rounded-lg border border-stone-border bg-white text-xs text-body-brown focus:outline-none focus:border-ink-black cursor-pointer flex-shrink-0"
             >
               <option value="">All Status</option>
               {STATUSES.map((s) => (
@@ -333,7 +358,7 @@ export default function LeadsPage() {
                 setPage(1)
                 setRowSelection({})
               }}
-              className="h-9 px-2 rounded-lg border border-stone-border bg-white text-xs text-body-brown focus:outline-none focus:border-ink-black cursor-pointer"
+              className="h-9 px-2 rounded-lg border border-stone-border bg-white text-xs text-body-brown focus:outline-none focus:border-ink-black cursor-pointer flex-shrink-0"
             >
               <option value="">All Sources</option>
               {SOURCES.map((s) => (
@@ -351,7 +376,7 @@ export default function LeadsPage() {
                 setPage(1)
                 setRowSelection({})
               }}
-              className="h-9 px-2 rounded-lg border border-stone-border bg-white text-xs text-body-brown focus:outline-none focus:border-ink-black cursor-pointer"
+              className="h-9 px-2 rounded-lg border border-stone-border bg-white text-xs text-body-brown focus:outline-none focus:border-ink-black cursor-pointer flex-shrink-0"
             >
               <option value="">All Priority</option>
               {PRIORITIES.map((p) => (
@@ -362,7 +387,7 @@ export default function LeadsPage() {
             </select>
 
             {/* Created From date picker */}
-            <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5">
+            <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5 flex-shrink-0">
               <span className="text-[10px] uppercase font-bold text-muted-gray">From:</span>
               <input
                 type="date"
@@ -376,7 +401,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Created To date picker */}
-            <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5">
+            <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5 flex-shrink-0">
               <span className="text-[10px] uppercase font-bold text-muted-gray">To:</span>
               <input
                 type="date"
@@ -396,9 +421,9 @@ export default function LeadsPage() {
                   setDateTo('')
                   setPage(1)
                 }}
-                className="text-[10px] font-bold text-alert-red hover:underline uppercase tracking-wider pl-1"
+                className="text-[10px] font-bold text-alert-red hover:underline uppercase tracking-wider flex-shrink-0 touch-manipulation"
               >
-                Clear Dates
+                Clear
               </button>
             )}
           </div>
@@ -427,9 +452,9 @@ export default function LeadsPage() {
 
         {/* Floating Bulk Assignment Bar */}
         {selectedLeadIds.length > 0 && user?.access?.assign_leads && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#1e1d1b] text-white px-5 py-3.5 rounded-2xl shadow-premium border border-stone-border/20 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto z-50 bg-[#1e1d1b] text-white px-4 py-3 rounded-2xl shadow-premium border border-stone-border/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
             <span className="text-xs font-bold whitespace-nowrap">{selectedLeadIds.length} leads selected</span>
-            <div className="h-4 w-px bg-white/20" />
+            <div className="h-px sm:h-4 sm:w-px bg-white/20" />
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase font-bold text-stone-surface">Assign To:</span>
               <select
@@ -443,7 +468,7 @@ export default function LeadsPage() {
                 }}
                 disabled={bulkAssignMutation.isPending}
                 defaultValue=""
-                className="h-8 px-2 rounded-lg border border-white/20 bg-stone-surface/10 text-white text-xs focus:outline-none focus:border-white cursor-pointer"
+                className="flex-1 sm:flex-none h-9 px-2 rounded-lg border border-white/20 bg-stone-surface/10 text-white text-xs focus:outline-none focus:border-white cursor-pointer"
               >
                 <option value="" className="text-heading-charcoal">
                   Select Employee...
@@ -460,7 +485,7 @@ export default function LeadsPage() {
             </div>
             <button
               onClick={() => setRowSelection({})}
-              className="text-[10px] font-bold text-[#e6e2dd] hover:text-white uppercase tracking-wider transition-colors ml-2"
+              className="text-[10px] font-bold text-[#e6e2dd] hover:text-white uppercase tracking-wider transition-colors text-center touch-manipulation"
             >
               Cancel
             </button>

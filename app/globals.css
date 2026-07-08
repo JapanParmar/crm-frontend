@@ -266,3 +266,47 @@ table {
 .animate-slide-in {
   animation: slide-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Mobile utility: hide scrollbars while preserving scroll */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch-manipulation for faster tap response on mobile */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Safe bottom padding for iOS home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Ensure minimum tap target size (44px) per WCAG */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Mobile card padding override */
+@media (max-width: 640px) {
+  .rounded-cards {
+    border-radius: 16px;
+  }
+  
+  /* Prevent text overflow on mobile */
+  .mobile-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Prevent body scroll when mobile sidebar is open */
+body.sidebar-open {
+  overflow: hidden;
+}

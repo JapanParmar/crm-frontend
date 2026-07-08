@@ -531,32 +531,32 @@ export default function ImportPage() {
       <AppHeader title="Bulk Import Leads" subtitle="Upload spreadsheet files from MagicBricks, 99Acres, Housing.com or Custom templates" />
       <AddLeadModal open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
 
-      <main className="flex-1 overflow-auto bg-cream-canvas p-6 lg:p-8" style={{ paddingTop: '76px' }}>
+      <main className="flex-1 overflow-auto bg-cream-canvas p-4 md:p-6 lg:p-8" style={{ paddingTop: '76px' }}>
         <div className="max-w-6xl mx-auto space-y-6">
           
           {/* Header Action Section */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-stone-surface p-5 rounded-cards shadow-sm">
+          <div className="flex flex-col gap-4 bg-white border border-stone-surface p-4 md:p-5 rounded-cards shadow-sm">
             <div>
-              <h2 className="font-family-display text-lg text-heading-charcoal tracking-tight flex items-center gap-2">
-                <Import className="w-5 h-5 text-ember-orange" />
+              <h2 className="font-family-display text-base md:text-lg text-heading-charcoal tracking-tight flex items-center gap-2">
+                <Import className="w-5 h-5 text-ember-orange flex-shrink-0" />
                 Multi-Provider Intelligent Parser
               </h2>
               <p className="text-xs text-body-brown mt-0.5">Auto-detects columns, normalizes phone numbers, parses budgets, and segments service types.</p>
             </div>
             
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-muted-gray">Template Downloads:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="text-xs font-bold text-muted-gray flex-shrink-0">Templates:</span>
               <div className="flex gap-1.5 flex-wrap">
-                <button onClick={() => downloadTemplate('magicbricks_property')} className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#FF5722]/5 text-[#FF5722] hover:bg-[#FF5722]/10 border border-[#FF5722]/20 px-2 py-1.5 rounded-lg transition-colors">
+                <button onClick={() => downloadTemplate('magicbricks_property')} className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#FF5722]/5 text-[#FF5722] hover:bg-[#FF5722]/10 border border-[#FF5722]/20 px-2 py-1.5 rounded-lg transition-colors touch-manipulation">
                   <Download className="w-3 h-3" /> MagicBricks
                 </button>
-                <button onClick={() => downloadTemplate('99acres')} className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#4CAF50]/5 text-[#4CAF50] hover:bg-[#4CAF50]/10 border border-[#4CAF50]/20 px-2 py-1.5 rounded-lg transition-colors">
+                <button onClick={() => downloadTemplate('99acres')} className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#4CAF50]/5 text-[#4CAF50] hover:bg-[#4CAF50]/10 border border-[#4CAF50]/20 px-2 py-1.5 rounded-lg transition-colors touch-manipulation">
                   <Download className="w-3 h-3" /> 99Acres
                 </button>
-                <button onClick={() => downloadTemplate('housing')} className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#2196F3]/5 text-[#2196F3] hover:bg-[#2196F3]/10 border border-[#2196F3]/20 px-2 py-1.5 rounded-lg transition-colors">
+                <button onClick={() => downloadTemplate('housing')} className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#2196F3]/5 text-[#2196F3] hover:bg-[#2196F3]/10 border border-[#2196F3]/20 px-2 py-1.5 rounded-lg transition-colors touch-manipulation">
                   <Download className="w-3 h-3" /> Housing.com
                 </button>
-                <button onClick={() => downloadTemplate('standard')} className="inline-flex items-center gap-1 text-[10px] font-bold bg-ember/5 text-ember hover:bg-ember/10 border border-ember/20 px-2 py-1.5 rounded-lg transition-colors">
+                <button onClick={() => downloadTemplate('standard')} className="inline-flex items-center gap-1 text-[10px] font-bold bg-ember/5 text-ember hover:bg-ember/10 border border-ember/20 px-2 py-1.5 rounded-lg transition-colors touch-manipulation">
                   <Download className="w-3 h-3" /> Standard
                 </button>
               </div>
@@ -612,7 +612,7 @@ export default function ImportPage() {
               {/* Upload Drag/Drop Box */}
               <div className="md:col-span-2">
                 <div 
-                  className="border-2 border-dashed border-stone-border/80 rounded-cards p-16 text-center bg-white hover:bg-stone-surface/10 cursor-pointer transition-all flex flex-col items-center justify-center h-full min-h-[280px]"
+                  className="border-2 border-dashed border-stone-border/80 rounded-cards p-8 md:p-16 text-center bg-white hover:bg-stone-surface/10 cursor-pointer transition-all flex flex-col items-center justify-center h-full min-h-[200px] md:min-h-[280px] touch-manipulation"
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
