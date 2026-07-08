@@ -88,6 +88,16 @@ export const leadsApi = {
 
   bulkAssign: (data: { lead_ids: number[]; assigned_to: number | null }) =>
     api.patch<ApiSuccessResponse<void>>('/leads/bulk-assign', data),
+
+  checkDuplicates: (data: { leads: { phone?: string; email?: string }[] }) =>
+    api.post<ApiSuccessResponse<{
+      phone?: string
+      email?: string
+      is_duplicate: boolean
+      lead_id?: number
+      lead_number?: string
+      lead_name?: string
+    }[]>>('/leads/check-duplicates', data),
 }
 
 // ---------------------------------------------------------------------------
@@ -238,15 +248,21 @@ export interface ApiLead {
   phone: string
   alternate_phone: string | null
   email: string | null
+  lead_date: string | null
   source: string
+  service_type: string | null
   status: string
   priority: string
   property_type: string | null
   budget_min: number | null
   budget_max: number | null
   preferred_location: string | null
+  city: string | null
+  locality: string | null
   project_interest: string | null
   bhk_preference: string | null
+  listing_id: string | null
+  lead_provider_ref: string | null
   score: number
   notes: string | null
   tags: string[]
@@ -328,6 +344,13 @@ export interface DashboardData {
   team?: TeamMemberStat[]
 }
 
+export interface MonthlyTrendItem {
+  month: string
+  key: string
+  leads: number
+  closed_won: number
+}
+
 export interface AdminStats {
   total_leads: number
   assigned_leads: number
@@ -347,6 +370,11 @@ export interface AdminStats {
   cold_leads: number
   leads_by_source: Record<string, number>
   leads_by_status: Record<string, number>
+  leads_by_service_type: Record<string, number>
+  leads_by_city: Record<string, number>
+  leads_by_property_type: Record<string, number>
+  leads_by_bhk: Record<string, number>
+  monthly_trend: MonthlyTrendItem[]
 }
 
 export interface EmployeeStats {
@@ -445,15 +473,21 @@ export interface CreateLeadPayload {
   phone: string
   alternate_phone?: string
   email?: string
+  lead_date?: string
   source: string
+  service_type?: string
   status?: string
   priority?: string
   property_type?: string
   budget_min?: number
   budget_max?: number
   preferred_location?: string
+  city?: string
+  locality?: string
   project_interest?: string
   bhk_preference?: string
+  listing_id?: string
+  lead_provider_ref?: string
   notes?: string
   assigned_to?: number
 }

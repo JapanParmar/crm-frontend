@@ -27,6 +27,35 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+// Chart.js imports and configuration
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js'
+import { Line, Doughnut, Bar } from 'react-chartjs-2'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
+
 const FOLLOW_UP_TYPE_ICONS: Record<string, React.ReactNode> = {
   call: <PhoneCall className="w-3 h-3" />,
   whatsapp: <MessageSquare className="w-3 h-3" />,
@@ -168,32 +197,206 @@ export default function DashboardPage() {
     ]
   }, [totalLeads, closedWon])
 
-  const maxLeads = Math.max(...chartData.map(d => d.leads), 10)
-  const maxSales = Math.max(...chartData.map(d => d.sales), 5)
-  const maxVal = Math.max(maxLeads, maxSales) * 1.15 // 15% padding on top
-  
-  const chartHeight = 160
-  const chartWidth = 500
-  
-  // Calculate points
-  const leadPoints = chartData.map((d, i) => {
-    const x = (i / (chartData.length - 1)) * chartWidth
-    const y = chartHeight - (d.leads / maxVal) * chartHeight
-    return { x, y }
-  })
-  
-  const salesPoints = chartData.map((d, i) => {
-    const x = (i / (chartData.length - 1)) * chartWidth
-    const y = chartHeight - (d.sales / maxVal) * chartHeight
-    return { x, y }
-  })
+  // 1. Line Performance Chart Data & Options
+  const performanceChartData = React.useMemo(() => {
+    return {
+      labels: chartData.map(d => d.label),
+      datasets: [
+        {
+          label: 'Leads',
+          data: chartData.map(d => d.leads),
+          borderColor: '#F1C40F', // Sun Yellow
+          backgroundColor: 'rgba(241, 196, 15, 0.06)',
+          borderWidth: 2,
+          tension: 0.35,
+          fill: true,
+          pointBackgroundColor: '#F1C40F',
+          pointBorderColor: '#FFF',
+          pointBorderWidth: 1.5,
+          pointRadius: 4.5,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'Closed Won',
+          data: chartData.map(d => d.sales),
+          borderColor: '#2ECC71', // Grass green
+          backgroundColor: 'rgba(46, 204, 113, 0.06)',
+          borderWidth: 2,
+          tension: 0.35,
+          fill: true,
+          pointBackgroundColor: '#2ECC71',
+          pointBorderColor: '#FFF',
+          pointBorderWidth: 1.5,
+          pointRadius: 4.5,
+          pointHoverRadius: 6,
+        }
+      ]
+    }
+  }, [chartData])
 
-  // Generate SVG path string
-  const leadPath = leadPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const leadArea = `${leadPath} L ${leadPoints[leadPoints.length - 1].x} ${chartHeight} L ${leadPoints[0].x} ${chartHeight} Z`
+  const performanceChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+        backgroundColor: '#1E1E1E',
+        titleFont: { size: 10, weight: 'bold' as const },
+        bodyFont: { size: 10 },
+        padding: 8,
+        borderRadius: 6,
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#8A8A8A', font: { size: 9, weight: 'bold' as const } }
+      },
+      y: {
+        grid: { color: 'rgba(230, 225, 220, 0.4)', drawTicks: false },
+        ticks: { color: '#8A8A8A', font: { size: 9, weight: 'bold' as const } }
+      }
+    }
+  }
 
-  const salesPath = salesPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const salesArea = `${salesPath} L ${salesPoints[salesPoints.length - 1].x} ${chartHeight} L ${salesPoints[0].x} ${chartHeight} Z`
+  // 2. Lead Channels Doughnut Data & Options
+  const channelsChartData = React.useMemo(() => {
+    const labels = topSources.map(({ source }) => LEAD_SOURCE_LABELS[source as keyof typeof LEAD_SOURCE_LABELS] ?? source)
+    const data = topSources.map(({ count }) => count)
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: [
+            '#FF9F43', // Meta
+            '#1DD1A1', // Google
+            '#54A0FF', // MagicBricks
+            '#5F27CD', // 99acres
+            '#FF6B6B', // Housing
+            '#8395A7'  // Other
+          ],
+          borderWidth: 2,
+          borderColor: '#FFF',
+        }
+      ]
+    }
+  }, [topSources])
+
+  const channelsChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right' as const,
+        labels: {
+          boxWidth: 8,
+          font: { size: 9, weight: 'bold' as const },
+          color: '#5C5246',
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1E1E1E',
+        bodyFont: { size: 10 },
+        padding: 8,
+        borderRadius: 6,
+      }
+    },
+    cutout: '60%',
+  }
+
+  // 3. Service Type Breakdown Doughnut Data & Options
+  const serviceTypeChartData = React.useMemo(() => {
+    const rawData = adminStats?.leads_by_service_type ?? {}
+    const labels = Object.keys(rawData).map(type => type === 'new_project' ? 'New Project' : type === 'resale' ? 'Resale' : type === 'rental' ? 'Rental' : type)
+    const data = Object.values(rawData)
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: [
+            '#F1C40F', // New Project / Yellow
+            '#2ECC71', // Resale / Green
+            '#3498DB', // Rental / Blue
+          ],
+          borderWidth: 2,
+          borderColor: '#FFF',
+        }
+      ]
+    }
+  }, [adminStats])
+
+  const serviceTypeChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right' as const,
+        labels: {
+          boxWidth: 8,
+          font: { size: 9, weight: 'bold' as const },
+          color: '#5C5246',
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1E1E1E',
+        bodyFont: { size: 10 },
+        padding: 8,
+        borderRadius: 6,
+      }
+    },
+    cutout: '60%',
+  }
+
+  // 4. Top Cities Bar Chart Data & Options
+  const citiesChartData = React.useMemo(() => {
+    const rawData = adminStats?.leads_by_city ?? {}
+    const labels = Object.keys(rawData).map(city => city || 'Unspecified')
+    const data = Object.values(rawData)
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Leads',
+          data,
+          backgroundColor: 'rgba(230, 126, 34, 0.75)',
+          borderColor: '#E67E22',
+          borderWidth: 1,
+          borderRadius: 4,
+        }
+      ]
+    }
+  }, [adminStats])
+
+  const citiesChartOptions = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1E1E1E',
+        bodyFont: { size: 10 },
+        padding: 8,
+        borderRadius: 6,
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#8A8A8A', font: { size: 8, weight: 'bold' as const } }
+      },
+      y: {
+        grid: { display: false },
+        ticks: { color: '#8A8A8A', font: { size: 9, weight: 'bold' as const } }
+      }
+    }
+  }
 
   return (
     <AppShell>
@@ -332,47 +535,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="relative w-full h-[200px] mt-2">
-                  <svg className="w-full h-[160px]" viewBox="0 0 500 160" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="leadsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--color-sun-yellow)" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="var(--color-sun-yellow)" stopOpacity="0.0" />
-                      </linearGradient>
-                      <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--color-grass-green)" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="var(--color-grass-green)" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    
-                    {/* Horizontal Grid lines */}
-                    <line x1="0" y1="40" x2="500" y2="40" stroke="var(--color-stone-surface)" strokeDasharray="3 3" />
-                    <line x1="0" y1="80" x2="500" y2="80" stroke="var(--color-stone-surface)" strokeDasharray="3 3" />
-                    <line x1="0" y1="120" x2="500" y2="120" stroke="var(--color-stone-surface)" strokeDasharray="3 3" />
-                    
-                    {/* Areas */}
-                    <path d={leadArea} fill="url(#leadsGrad)" />
-                    <path d={salesArea} fill="url(#salesGrad)" />
-                    
-                    {/* Lines */}
-                    <path d={leadPath} fill="none" stroke="var(--color-sun-yellow)" strokeWidth="2.5" strokeLinecap="round" />
-                    <path d={salesPath} fill="none" stroke="var(--color-grass-green)" strokeWidth="2.5" strokeLinecap="round" />
-
-                    {/* Interactive dots */}
-                    {leadPoints.map((p, idx) => (
-                      <circle key={`l-${idx}`} cx={p.x} cy={p.y} r="4" fill="var(--color-sun-yellow)" stroke="white" strokeWidth="1.5" />
-                    ))}
-                    {salesPoints.map((p, idx) => (
-                      <circle key={`s-${idx}`} cx={p.x} cy={p.y} r="4" fill="var(--color-grass-green)" stroke="white" strokeWidth="1.5" />
-                    ))}
-                  </svg>
-                  
-                  {/* X Axis Labels */}
-                  <div className="flex justify-between mt-3 text-[10px] text-muted-gray font-bold px-1 select-none">
-                    {chartData.map((d, i) => (
-                      <span key={i}>{d.label}</span>
-                    ))}
-                  </div>
+                <div className="w-full h-[180px] mt-2">
+                  <Line data={performanceChartData} options={performanceChartOptions} />
                 </div>
               </section>
 
@@ -783,18 +947,40 @@ export default function DashboardPage() {
               {isAdmin && (
                 <section className="bg-white rounded-cards p-6 border border-stone-surface">
                   <h2 className="text-xs font-semibold text-muted-gray uppercase tracking-wider mb-3">Lead Channels</h2>
-                  <div className="space-y-3">
-                    {topSources.map(({ source, count, percentage }) => (
-                      <div key={source} className="space-y-1">
-                        <div className="flex justify-between text-xs font-semibold text-heading-charcoal">
-                          <span>{LEAD_SOURCE_LABELS[source as keyof typeof LEAD_SOURCE_LABELS] ?? source}</span>
-                          <span>{count}</span>
-                        </div>
-                        <div className="h-2 bg-stone-surface border border-stone-border rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-sun-yellow" style={{ width: `${percentage}%` }} />
-                        </div>
-                      </div>
-                    ))}
+                  <div className="h-[140px] relative">
+                    {topSources.length === 0 ? (
+                      <p className="text-xs text-muted-gray py-2 text-center">No source data yet</p>
+                    ) : (
+                      <Doughnut data={channelsChartData} options={channelsChartOptions} />
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* Service Type Segments */}
+              {isAdmin && adminStats?.leads_by_service_type && (
+                <section className="bg-white rounded-cards p-6 border border-stone-surface">
+                  <h2 className="text-xs font-semibold text-muted-gray uppercase tracking-wider mb-3">Service Type Breakdown</h2>
+                  <div className="h-[140px] relative">
+                    {Object.keys(adminStats.leads_by_service_type).length === 0 ? (
+                      <p className="text-xs text-muted-gray py-2 text-center">No service type data yet</p>
+                    ) : (
+                      <Doughnut data={serviceTypeChartData} options={serviceTypeChartOptions} />
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* City Breakdown */}
+              {isAdmin && adminStats?.leads_by_city && (
+                <section className="bg-white rounded-cards p-6 border border-stone-surface">
+                  <h2 className="text-xs font-semibold text-muted-gray uppercase tracking-wider mb-3">Top Cities</h2>
+                  <div className="h-[160px] relative">
+                    {Object.keys(adminStats.leads_by_city).length === 0 ? (
+                      <p className="text-xs text-muted-gray py-2 text-center">No city data yet</p>
+                    ) : (
+                      <Bar data={citiesChartData} options={citiesChartOptions} />
+                    )}
                   </div>
                 </section>
               )}

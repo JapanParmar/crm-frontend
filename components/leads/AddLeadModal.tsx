@@ -16,14 +16,21 @@ const leadSchema = z.object({
   phone: z.string().min(10, 'Enter a valid 10-digit phone number').max(15),
   alternate_phone: z.string().optional(),
   email: z.string().email('Enter a valid email').optional().or(z.literal('')),
+  lead_date: z.string().optional(),
   source: z.string().min(1, 'Select a source'),
+  service_type: z.string().optional(),
   status: z.string().min(1, 'Select status'),
   priority: z.string().min(1, 'Select priority'),
   property_type: z.string().optional(),
   budget_min: z.string().optional(),
   budget_max: z.string().optional(),
   preferred_location: z.string().optional(),
+  city: z.string().optional(),
+  locality: z.string().optional(),
   project_interest: z.string().optional(),
+  bhk_preference: z.string().optional(),
+  listing_id: z.string().optional(),
+  lead_provider_ref: z.string().optional(),
   assigned_to: z.string().optional(),
   notes: z.string().optional(),
 })
@@ -68,14 +75,21 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
           phone: lead.phone,
           alternate_phone: lead.alternate_phone || '',
           email: lead.email || '',
+          lead_date: lead.lead_date || '',
           source: lead.source,
+          service_type: lead.service_type || '',
           status: lead.status,
           priority: lead.priority,
           property_type: lead.property_type || '',
           budget_min: lead.budget_min ? String(lead.budget_min) : '',
           budget_max: lead.budget_max ? String(lead.budget_max) : '',
           preferred_location: lead.preferred_location || '',
+          city: lead.city || '',
+          locality: lead.locality || '',
           project_interest: lead.project_interest || '',
+          bhk_preference: lead.bhk_preference || '',
+          listing_id: lead.listing_id || '',
+          lead_provider_ref: lead.lead_provider_ref || '',
           assigned_to: lead.assigned_to?.id ? String(lead.assigned_to.id) : '',
           notes: lead.notes || '',
         })
@@ -85,14 +99,21 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
           phone: '',
           alternate_phone: '',
           email: '',
+          lead_date: '',
           source: '',
+          service_type: '',
           status: 'new',
           priority: 'medium',
           property_type: '',
           budget_min: '',
           budget_max: '',
           preferred_location: '',
+          city: '',
+          locality: '',
           project_interest: '',
+          bhk_preference: '',
+          listing_id: '',
+          lead_provider_ref: '',
           assigned_to: '',
           notes: '',
         })
@@ -110,14 +131,21 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
         phone: data.phone,
         alternate_phone: data.alternate_phone || undefined,
         email: data.email || undefined,
+        lead_date: data.lead_date || undefined,
         source: data.source,
+        service_type: data.service_type || undefined,
         status: data.status,
         priority: data.priority,
         property_type: data.property_type || undefined,
         budget_min: data.budget_min ? parseInt(data.budget_min) : undefined,
         budget_max: data.budget_max ? parseInt(data.budget_max) : undefined,
         preferred_location: data.preferred_location || undefined,
+        city: data.city || undefined,
+        locality: data.locality || undefined,
         project_interest: data.project_interest || undefined,
+        bhk_preference: data.bhk_preference || undefined,
+        listing_id: data.listing_id || undefined,
+        lead_provider_ref: data.lead_provider_ref || undefined,
         assigned_to: data.assigned_to ? parseInt(data.assigned_to) : undefined,
         notes: data.notes || undefined,
       }
@@ -216,6 +244,15 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
               ]}
               {...form.register('priority')}
             />
+            <Select label="Service Type" placeholder="Select service type"
+              options={[
+                { value: 'new_project', label: 'New Project' },
+                { value: 'resale', label: 'Resale' },
+                { value: 'rental', label: 'Rental' },
+              ]}
+              {...form.register('service_type')}
+            />
+            <Input label="Lead Inquiry Date" type="date" {...form.register('lead_date')} />
           </div>
         </div>
 
@@ -235,11 +272,16 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
               ]}
               {...form.register('property_type')}
             />
-            <Input label="Preferred Location" placeholder="e.g. Whitefield, HSR Layout" {...form.register('preferred_location')} />
+            <Input label="BHK Preference" placeholder="e.g. 3 BHK, 4 BHK" {...form.register('bhk_preference')} />
             <Input label="Min Budget (₹)" type="number" placeholder="e.g. 5000000" {...form.register('budget_min')} />
             <Input label="Max Budget (₹)" type="number" placeholder="e.g. 10000000" {...form.register('budget_max')} />
+            <Input label="City" placeholder="e.g. Bengaluru" {...form.register('city')} />
+            <Input label="Locality" placeholder="e.g. Whitefield" {...form.register('locality')} />
             <div className="col-span-2">
               <Input label="Project Interest" placeholder="e.g. Prestige Skyline, Brigade Utopia" {...form.register('project_interest')} />
+            </div>
+            <div className="col-span-2">
+              <Input label="Preferred Location (General Description)" placeholder="e.g. near Metro, high floor" {...form.register('preferred_location')} />
             </div>
           </div>
         </div>
@@ -254,6 +296,15 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
               options={employees.map((emp) => ({ value: String(emp.id), label: emp.name }))}
               {...form.register('assigned_to')}
             />
+          </div>
+        </div>
+
+        {/* Portal References */}
+        <div>
+          <h3 className="text-xs font-semibold text-muted-gray uppercase tracking-wide mb-2.5">Portal References</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Listing ID" placeholder="e.g. MB-100293, 99A-928" {...form.register('listing_id')} />
+            <Input label="Lead Provider Reference" placeholder="e.g. Housing-88371" {...form.register('lead_provider_ref')} />
           </div>
         </div>
 

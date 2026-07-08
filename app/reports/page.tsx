@@ -22,6 +22,33 @@ import {
 } from 'lucide-react'
 import { LEAD_STATUS_LABELS, LEAD_SOURCE_LABELS } from '@/lib/constants'
 
+// Chart.js imports and configuration
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+import { Doughnut, Bar } from 'react-chartjs-2'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+)
+
 const columnHelper = createColumnHelper<TeamMemberStat>()
 
 export default function ReportsPage() {
@@ -99,6 +126,93 @@ export default function ReportsPage() {
     })).sort((a, b) => b.count - a.count)
   }, [stats])
 
+  // Chart.js data for status pipeline doughnut chart
+  const pipelineChartData = React.useMemo(() => {
+    return {
+      labels: statusSummary.map(item => item.label),
+      datasets: [
+        {
+          data: statusSummary.map(item => item.count),
+          backgroundColor: [
+            '#F1C40F', // New / Yellow
+            '#3498DB', // Contacted / Blue
+            '#E67E22', // Qualified / Orange
+            '#9B59B6', // Proposal / Purple
+            '#2ECC71', // Closed Won / Green
+            '#E74C3C', // Closed Lost / Red
+            '#95A5A6'  // Cold / Gray
+          ],
+          borderWidth: 2,
+          borderColor: '#FFF',
+        }
+      ]
+    }
+  }, [statusSummary])
+
+  const pipelineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right' as const,
+        labels: {
+          boxWidth: 8,
+          font: { size: 9, weight: 'bold' as const },
+          color: '#5C5246',
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1E1E1E',
+        bodyFont: { size: 10 },
+        padding: 8,
+        borderRadius: 6,
+      }
+    },
+    cutout: '60%',
+  }
+
+  // Chart.js data for channels horizontal bar chart
+  const acquisitionChartData = React.useMemo(() => {
+    return {
+      labels: sourceSummary.map(item => item.label),
+      datasets: [
+        {
+          label: 'Leads',
+          data: sourceSummary.map(item => item.count),
+          backgroundColor: 'rgba(230, 126, 34, 0.75)',
+          borderColor: '#E67E22',
+          borderWidth: 1,
+          borderRadius: 4,
+        }
+      ]
+    }
+  }, [sourceSummary])
+
+  const acquisitionChartOptions = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1E1E1E',
+        bodyFont: { size: 10 },
+        padding: 8,
+        borderRadius: 6,
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#8A8A8A', font: { size: 8, weight: 'bold' as const } }
+      },
+      y: {
+        grid: { display: false },
+        ticks: { color: '#8A8A8A', font: { size: 9, weight: 'bold' as const } }
+      }
+    }
+  }
+
   return (
     <AppShell>
       <AppHeader title="Reports" subtitle="Analytics telemetry & performance metrics" />
@@ -134,21 +248,15 @@ export default function ReportsPage() {
                       Leads Pipeline Stage Funnel
                     </h3>
                   </div>
-                  <div className="space-y-3.5 flex-1">
-                    {statusSummary.map((item) => (
-                      <div key={item.status} className="space-y-1">
-                        <div className="flex justify-between text-xs font-semibold text-heading-charcoal">
-                          <span>{item.label}</span>
-                          <span className="text-body-brown">{item.count} ({item.percentage}%)</span>
-                        </div>
-                        <div className="h-2 bg-stone-surface border border-stone-border rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-sun-yellow" style={{ width: `${item.percentage}%` }} />
-                        </div>
-                      </div>
-                    ))}
+                  <div className="h-[225px] relative flex-1 mt-2">
+                    {statusSummary.length === 0 ? (
+                      <p className="text-xs text-muted-gray py-2 text-center">No stage data yet</p>
+                    ) : (
+                      <Doughnut data={pipelineChartData} options={pipelineChartOptions} />
+                    )}
                   </div>
                 </div>
-
+ 
                 {/* Sources yield */}
                 <div className="bg-white rounded-cards border border-stone-surface p-5 flex flex-col h-full">
                   <div className="flex items-center gap-2 mb-4">
@@ -157,18 +265,12 @@ export default function ReportsPage() {
                       Acquisition Channels Yield
                     </h3>
                   </div>
-                  <div className="space-y-3.5 flex-1">
-                    {sourceSummary.map((item) => (
-                      <div key={item.source} className="space-y-1">
-                        <div className="flex justify-between text-xs font-semibold text-heading-charcoal">
-                          <span>{item.label}</span>
-                          <span className="text-body-brown">{item.count} ({item.percentage}%)</span>
-                        </div>
-                        <div className="h-2 bg-stone-surface border border-stone-border rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-ember" style={{ width: `${item.percentage}%` }} />
-                        </div>
-                      </div>
-                    ))}
+                  <div className="h-[225px] relative flex-1 mt-2">
+                    {sourceSummary.length === 0 ? (
+                      <p className="text-xs text-muted-gray py-2 text-center">No source data yet</p>
+                    ) : (
+                      <Bar data={acquisitionChartData} options={acquisitionChartOptions} />
+                    )}
                   </div>
                 </div>
               </div>
