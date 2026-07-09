@@ -87,6 +87,9 @@ export const authApi = {
 
   me: () => api.get<ApiSuccessResponse<AuthUser>>('/me'),
 
+  updatePreferences: (preferences: Record<string, any>) =>
+    api.put<ApiSuccessResponse<Record<string, any>>>('/me/preferences', { preferences }),
+
   logout: () => api.post('/logout'),
 }
 
@@ -260,6 +263,7 @@ export interface AuthUser {
   email: string
   phone: string | null
   is_active: number | boolean
+  preferences?: Record<string, any> | null
   roles: string[]
   permissions: string[]
   access: AccessFlags

@@ -81,10 +81,86 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+import { useAppStore } from '@/store/useAppStore'
+
+function PreferencesWrapper({ children }: { children: React.ReactNode }) {
+  const fontSize = useAppStore((s) => s.fontSize)
+  const fontFamily = useAppStore((s) => s.fontFamily)
+  const theme = useAppStore((s) => s.theme)
+  const customCanvasColor = useAppStore((s) => s.customCanvasColor)
+  const customSurfaceColor = useAppStore((s) => s.customSurfaceColor)
+  const customAccentColor = useAppStore((s) => s.customAccentColor)
+  const hasHydrated = useAppStore((s) => s._hasHydrated)
+  const user = useAuthStore((s) => s.user)
+
+  // Sync DB preferences to Zustand local store on login/refresh
+  useEffect(() => {
+    if (user?.preferences) {
+      const prefs = user.preferences
+      if (prefs.fontSize) useAppStore.getState().setFontSize(prefs.fontSize)
+      if (prefs.fontFamily) useAppStore.getState().setFontFamily(prefs.fontFamily)
+      if (prefs.theme) useAppStore.getState().setTheme(prefs.theme)
+      if (prefs.customCanvasColor) useAppStore.getState().setCustomCanvasColor(prefs.customCanvasColor)
+      if (prefs.customSurfaceColor) useAppStore.getState().setCustomSurfaceColor(prefs.customSurfaceColor)
+      if (prefs.customAccentColor) useAppStore.getState().setCustomAccentColor(prefs.customAccentColor)
+      if (prefs.skeletonStyle) useAppStore.getState().setSkeletonStyle(prefs.skeletonStyle)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!hasHydrated) return
+
+    const root = document.documentElement
+
+    // 1. Font Size
+    const sizeMap = {
+      sm: '14px',
+      base: '16px',
+      lg: '18px',
+      xl: '20px',
+    }
+    root.style.setProperty('--base-font-size', sizeMap[fontSize] || '16px')
+
+    // 2. Font Family
+    const families = ['font-family-dm-sans', 'font-family-inter', 'font-family-outfit', 'font-family-plus-jakarta']
+    families.forEach((f) => root.classList.remove(f))
+    
+    if (fontFamily === 'sans') {
+      root.classList.add('font-family-dm-sans')
+    } else {
+      root.classList.add(`font-family-${fontFamily}`)
+    }
+
+    // 3. Theme
+    const themes = ['theme-classic', 'theme-dark', 'theme-warm', 'theme-mint', 'theme-indigo', 'theme-custom']
+    themes.forEach((t) => root.classList.remove(t))
+    root.classList.add(`theme-${theme}`)
+
+    // 4. Custom Accent & Colors
+    if (theme === 'custom') {
+      root.style.setProperty('--color-cream-canvas', customCanvasColor)
+      root.style.setProperty('--color-stone-surface', customSurfaceColor)
+      root.style.setProperty('--color-ember', customAccentColor)
+      root.style.setProperty('--color-ember-orange', customAccentColor)
+      root.style.setProperty('--color-brand', customAccentColor)
+    } else {
+      root.style.removeProperty('--color-cream-canvas')
+      root.style.removeProperty('--color-stone-surface')
+      root.style.removeProperty('--color-ember')
+      root.style.removeProperty('--color-ember-orange')
+      root.style.removeProperty('--color-brand')
+    }
+  }, [fontSize, fontFamily, theme, customCanvasColor, customSurfaceColor, customAccentColor, hasHydrated])
+
+  return <>{children}</>
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGuard>{children}</AuthGuard>
+      <PreferencesWrapper>
+        <AuthGuard>{children}</AuthGuard>
+      </PreferencesWrapper>
       <ToastContainer />
     </QueryClientProvider>
   )

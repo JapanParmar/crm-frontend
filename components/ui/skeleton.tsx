@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { cn } from '@/lib/utils'
+import { useAppStore } from '@/store/useAppStore'
 
 interface SkeletonProps {
   className?: string
@@ -9,9 +10,20 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className }: SkeletonProps) {
+  const skeletonStyle = useAppStore((s) => s.skeletonStyle)
+  const hasHydrated = useAppStore((s) => s._hasHydrated)
+
+  // Use shimmer as default/fallback if not hydrated yet
+  const isShimmer = !hasHydrated || skeletonStyle === 'shimmer'
+
   return (
     <div
-      className={cn('bg-cloud/60 rounded animate-pulse', className)}
+      className={cn(
+        isShimmer
+          ? 'skeleton-shimmer rounded'
+          : 'bg-cloud/90 dark:bg-stone-800 rounded animate-pulse',
+        className
+      )}
     />
   )
 }
@@ -72,12 +84,38 @@ export function LoadingSpinner({ size = 'sm', className }: { size?: 'xs' | 'sm' 
   const sizes = { xs: 'w-3 h-3', sm: 'w-4 h-4', md: 'w-6 h-6' }
   return (
     <svg
-      className={cn('animate-spin text-blue-600', sizes[size], className)}
+      className={cn('animate-spin text-ember', sizes[size], className)}
       viewBox="0 0 24 24"
       fill="none"
     >
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>
+  )
+}
+
+export function FullPageLoader() {
+  return (
+    <div className="fixed inset-0 bg-cream-canvas/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
+      <div className="relative">
+        <div className="w-12 h-12 rounded-full border-4 border-stone-border animate-pulse" />
+        <div className="absolute top-0 left-0 w-12 h-12 rounded-full border-4 border-t-ember border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+      </div>
+      <p className="text-xs font-semibold text-heading-charcoal tracking-wider uppercase animate-pulse">
+        Loading workspace...
+      </p>
+    </div>
+  )
+}
+
+export function CardLoader({ message = 'Loading details...' }: { message?: string }) {
+  return (
+    <div className="w-full min-h-[200px] flex flex-col items-center justify-center gap-3 p-6 text-center animate-in fade-in duration-200">
+      <div className="relative">
+        <div className="w-8 h-8 rounded-full border-2 border-stone-border animate-pulse" />
+        <div className="absolute top-0 left-0 w-8 h-8 rounded-full border-2 border-t-ember border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+      </div>
+      {message && <p className="text-xs text-muted-gray">{message}</p>}
+    </div>
   )
 }

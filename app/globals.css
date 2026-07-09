@@ -148,7 +148,7 @@
 
 html {
   height: 100%;
-  font-size: 16px;
+  font-size: var(--base-font-size, 16px);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -158,10 +158,273 @@ body {
   background: var(--color-cream-canvas);
   color: var(--color-body-brown);
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: var(--base-font-size, 16px);
   line-height: 1.47;
   margin: 0;
   padding: 0;
+}
+
+/* --- THEME STYLING --- */
+
+/* 1. Classic Light (Default) */
+.theme-classic {
+  --color-cream-canvas: var(--color-paper);
+  --color-stone-surface: var(--color-snow);
+  --color-stone-border: var(--color-cloud);
+  --color-heading-charcoal: var(--color-graphite);
+  --color-body-brown: var(--color-iron);
+  --color-muted-gray: var(--color-fog);
+  --color-brand: var(--color-ink-black);
+}
+
+/* 2. Obsidian Dark */
+.theme-dark {
+  --color-paper: #0b0b0c;
+  --color-cream-canvas: #09090a;
+  --color-snow: #121215;
+  --color-stone-surface: #121215;
+  --color-cloud: #202024;
+  --color-stone-border: #202024;
+  --color-graphite: #f4f4f5;
+  --color-heading-charcoal: #f4f4f5;
+  --color-iron: #d4d4d8;
+  --color-body-brown: #d4d4d8;
+  --color-fog: #8e8e93;
+  --color-muted-gray: #8e8e93;
+  --color-brand: #ffffff;
+  --color-ink-black: #ffffff;
+  
+  /* Alert & highlights overrides */
+  --color-ember: #ff7a30;
+  
+  color-scheme: dark;
+}
+
+.theme-dark .bg-white {
+  background-color: var(--color-snow) !important;
+}
+
+.theme-dark thead tr {
+  background-color: #17171c !important;
+}
+
+.theme-dark input,
+.theme-dark textarea,
+.theme-dark select {
+  background-color: #121215 !important;
+  color: #f4f4f5 !important;
+  border-color: #202024 !important;
+}
+
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: #71717a !important;
+}
+
+.theme-dark .bg-stone-surface {
+  background-color: #18181c !important;
+}
+
+.theme-dark .border-stone-border {
+  border-color: #202024 !important;
+}
+
+.theme-dark .border-stone-surface {
+  border-color: #202024 !important;
+}
+
+.theme-dark .divide-stone-surface > :not([hidden]) ~ :not([hidden]) {
+  border-color: #202024 !important;
+}
+
+/* 3. Sunset Warmth */
+.theme-warm {
+  --color-paper: #fcfaf6;
+  --color-cream-canvas: #f6f1e5;
+  --color-snow: #ffffff;
+  --color-stone-surface: #ffffff;
+  --color-cloud: #ebdec9;
+  --color-stone-border: #ebdec9;
+  --color-graphite: #402905;
+  --color-heading-charcoal: #402905;
+  --color-iron: #614417;
+  --color-body-brown: #614417;
+  --color-fog: #997b50;
+  --color-muted-gray: #997b50;
+  --color-ember: #d97706; /* Warm amber accent */
+  --color-brand: #d97706;
+  --color-ink-black: #d97706;
+}
+
+.theme-warm thead tr {
+  background-color: #fbf9f4 !important;
+}
+
+/* 4. Nature Mint */
+.theme-mint {
+  --color-paper: #f4f8f5;
+  --color-cream-canvas: #e8f2ec;
+  --color-snow: #ffffff;
+  --color-stone-surface: #ffffff;
+  --color-cloud: #d1e7dd;
+  --color-stone-border: #d1e7dd;
+  --color-graphite: #0f2d20;
+  --color-heading-charcoal: #0f2d20;
+  --color-iron: #205c41;
+  --color-body-brown: #205c41;
+  --color-fog: #5c8f76;
+  --color-muted-gray: #5c8f76;
+  --color-ember: #198754; /* Mint forest green accent */
+  --color-brand: #0f5132;
+  --color-ink-black: #0f5132;
+}
+
+.theme-mint thead tr {
+  background-color: #eff6f2 !important;
+}
+
+/* 5. Ocean Breeze */
+.theme-indigo {
+  --color-paper: #f0f4f8;
+  --color-cream-canvas: #e2e8f0;
+  --color-snow: #ffffff;
+  --color-stone-surface: #ffffff;
+  --color-cloud: #cbd5e1;
+  --color-stone-border: #cbd5e1;
+  --color-graphite: #0f172a;
+  --color-heading-charcoal: #0f172a;
+  --color-iron: #334155;
+  --color-body-brown: #334155;
+  --color-fog: #64748b;
+  --color-muted-gray: #64748b;
+  --color-ember: #3b82f6; /* Ocean blue accent */
+  --color-brand: #1e3a8a;
+  --color-ink-black: #1e3a8a;
+}
+
+.theme-indigo thead tr {
+  background-color: #f8fafc !important;
+}
+
+/* 6. Custom Accent Theme */
+.theme-custom {
+  --color-cream-canvas: var(--color-paper);
+  --color-stone-surface: var(--color-snow);
+  --color-stone-border: var(--color-cloud);
+  --color-heading-charcoal: var(--color-graphite);
+  --color-body-brown: var(--color-iron);
+  --color-muted-gray: var(--color-fog);
+}
+
+.theme-custom .bg-white {
+  background-color: var(--color-stone-surface) !important;
+}
+
+.theme-custom thead tr {
+  background-color: var(--color-cream-canvas) !important;
+}
+
+.theme-custom input,
+.theme-custom textarea,
+.theme-custom select {
+  background-color: var(--color-stone-surface) !important;
+  border-color: var(--color-stone-border) !important;
+}
+
+.theme-custom .border-stone-border {
+  border-color: var(--color-stone-border) !important;
+}
+
+.theme-custom .border-stone-surface {
+  border-color: var(--color-stone-surface) !important;
+}
+
+.theme-custom .divide-stone-surface > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--color-stone-border) !important;
+}
+
+/* Color Picker Styling Reset */
+input[type="color"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 0;
+  border: 1px solid var(--color-stone-border);
+  border-radius: 8px;
+  cursor: pointer;
+  background: none;
+  overflow: hidden;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 6px;
+}
+
+input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 6px;
+}
+
+/* --- FONT FAMILY OVERRIDES --- */
+.font-family-dm-sans {
+  --font-sans: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --font-display: var(--font-dm-sans), 'DM Sans', sans-serif;
+}
+.font-family-inter {
+  --font-sans: var(--font-inter), 'Inter', sans-serif;
+  --font-display: var(--font-inter), 'Inter', sans-serif;
+}
+.font-family-outfit {
+  --font-sans: var(--font-outfit), 'Outfit', sans-serif;
+  --font-display: var(--font-outfit), 'Outfit', sans-serif;
+}
+.font-family-plus-jakarta {
+  --font-sans: var(--font-plus-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-display: var(--font-plus-jakarta), 'Plus Jakarta Sans', sans-serif;
+}
+
+/* --- SKELETON SHIMMER STYLES --- */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton-bg, rgba(228, 228, 231, 0.6)) 25%,
+    var(--color-skeleton-shimmer, rgba(255, 255, 255, 0.95)) 50%,
+    var(--color-skeleton-bg, rgba(228, 228, 231, 0.6)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+/* Redefine skeleton base and shimmer colors for dark mode */
+.theme-dark {
+  --color-skeleton-bg: rgba(39, 39, 42, 0.6);
+  --color-skeleton-shimmer: rgba(63, 63, 70, 0.95);
+}
+.theme-warm {
+  --color-skeleton-bg: rgba(235, 222, 201, 0.6);
+  --color-skeleton-shimmer: rgba(255, 255, 255, 0.95);
+}
+.theme-mint {
+  --color-skeleton-bg: rgba(209, 231, 221, 0.6);
+  --color-skeleton-shimmer: rgba(255, 255, 255, 0.95);
+}
+.theme-indigo {
+  --color-skeleton-bg: rgba(203, 213, 225, 0.6);
+  --color-skeleton-shimmer: rgba(255, 255, 255, 0.95);
 }
 
 /* Scrollbars */

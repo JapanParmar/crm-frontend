@@ -14,6 +14,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { formatDate } from '@/lib/utils'
 import { UserPlus, TrendingUp, Users, CheckCircle2, Clock, Edit, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function TeamPage() {
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
@@ -152,16 +153,16 @@ export default function TeamPage() {
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-cards border border-stone-surface p-5 animate-pulse">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-stone-surface" />
-                    <div className="space-y-1.5">
-                      <div className="h-3 w-28 bg-stone-surface rounded" />
-                      <div className="h-2.5 w-20 bg-stone-surface rounded" />
+                <div key={i} className="bg-white rounded-cards border border-stone-surface p-5 flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full" />
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-2.5 w-20" />
                     </div>
                   </div>
                   {Array.from({ length: 3 }).map((_, j) => (
-                    <div key={j} className="h-10 bg-stone-surface rounded-cards mb-2" />
+                    <Skeleton key={j} className="h-10 w-full rounded-cards" />
                   ))}
                 </div>
               ))}

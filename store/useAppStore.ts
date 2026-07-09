@@ -28,6 +28,25 @@ interface AppState {
   // Modals
   addLeadOpen: boolean
   setAddLeadOpen: (open: boolean) => void
+
+  // Preferences
+  fontSize: 'sm' | 'base' | 'lg' | 'xl'
+  fontFamily: 'sans' | 'inter' | 'outfit' | 'jakarta'
+  theme: 'classic' | 'dark' | 'warm' | 'mint' | 'indigo' | 'custom'
+  customCanvasColor: string
+  customSurfaceColor: string
+  customAccentColor: string
+  skeletonStyle: 'shimmer' | 'pulse'
+  setFontSize: (size: 'sm' | 'base' | 'lg' | 'xl') => void
+  setFontFamily: (family: 'sans' | 'inter' | 'outfit' | 'jakarta') => void
+  setTheme: (theme: 'classic' | 'dark' | 'warm' | 'mint' | 'indigo' | 'custom') => void
+  setCustomCanvasColor: (color: string) => void
+  setCustomSurfaceColor: (color: string) => void
+  setCustomAccentColor: (color: string) => void
+  setSkeletonStyle: (style: 'shimmer' | 'pulse') => void
+
+  _hasHydrated: boolean
+  setHasHydrated: (state: boolean) => void
 }
 
 const defaultFilters: LeadFilters = {}
@@ -64,12 +83,41 @@ export const useAppStore = create<AppState>()(
       // Modals
       addLeadOpen: false,
       setAddLeadOpen: (open) => set({ addLeadOpen: open }),
+
+      // Preferences
+      fontSize: 'base',
+      fontFamily: 'sans',
+      theme: 'classic',
+      customCanvasColor: '#f4f4f5',
+      customSurfaceColor: '#ffffff',
+      customAccentColor: '#ff5a00',
+      skeletonStyle: 'shimmer',
+      setFontSize: (fontSize) => set({ fontSize }),
+      setFontFamily: (fontFamily) => set({ fontFamily }),
+      setTheme: (theme) => set({ theme }),
+      setCustomCanvasColor: (customCanvasColor) => set({ customCanvasColor }),
+      setCustomSurfaceColor: (customSurfaceColor) => set({ customSurfaceColor }),
+      setCustomAccentColor: (customAccentColor) => set({ customAccentColor }),
+      setSkeletonStyle: (skeletonStyle) => set({ skeletonStyle }),
+
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: 'crm-app-store',
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
+        fontSize: state.fontSize,
+        fontFamily: state.fontFamily,
+        theme: state.theme,
+        customCanvasColor: state.customCanvasColor,
+        customSurfaceColor: state.customSurfaceColor,
+        customAccentColor: state.customAccentColor,
+        skeletonStyle: state.skeletonStyle,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
     }
   )
 )

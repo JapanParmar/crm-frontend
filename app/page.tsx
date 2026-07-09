@@ -9,6 +9,7 @@ import { LeadStatusBadge, LeadSourceBadge, LeadScore } from '@/components/leads/
 import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuthStore } from '@/store/useAuthStore'
+import { Skeleton } from '@/components/ui/skeleton'
 import { dashboardApi, leadsApi, usersApi, activityApi } from '@/lib/api'
 import type { AdminStats, EmployeeStats, TodayScheduleItem, TeamMemberStat } from '@/lib/api'
 import { LEAD_SOURCE_LABELS } from '@/lib/constants'
@@ -87,10 +88,10 @@ function StatCard({ label, value, sub, subColor }: { label: string; value: strin
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-cards p-6 border border-stone-surface animate-pulse">
-      <div className="h-3 w-24 bg-stone-surface rounded mb-2" />
-      <div className="h-8 w-16 bg-stone-surface rounded mb-2" />
-      <div className="h-3 w-20 bg-stone-surface rounded" />
+    <div className="bg-white rounded-cards p-6 border border-stone-surface flex flex-col gap-2.5">
+      <Skeleton className="h-3.5 w-24" />
+      <Skeleton className="h-8 w-16" />
+      <Skeleton className="h-3 w-20" />
     </div>
   )
 }
@@ -668,7 +669,7 @@ export default function DashboardPage() {
                 {dashboardLoading ? (
                   <div className="space-y-2">
                     {Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="h-12 bg-stone-surface rounded-cards animate-pulse" />
+                      <Skeleton key={i} className="h-12 w-full rounded-cards" />
                     ))}
                   </div>
                 ) : todaySchedule.length === 0 ? (
