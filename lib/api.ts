@@ -20,19 +20,59 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Auto-redirect to /login on 401
+// Auto-redirect to /login on 401, show errors on failures
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      useAuthStore.getState().clearAuth()
-      window.location.href = '/login'
-    } else if (error.response?.status === 403 && typeof window !== 'undefined') {
-      const msg = error.response?.data?.message || 'Access denied: You do not have permission to perform this action.'
-      useToastStore.getState().addToast(msg, 'error')
-    } else if (error.response?.status >= 500 && typeof window !== 'undefined') {
-      const msg = error.response?.data?.message || 'Server error: Something went wrong. Please try again later.'
-      useToastStore.getState().addToast(msg, 'error')
+    if (typeof window !== 'undefined') {
+      const isLoginRequest = error.config?.url?.endsWith('/login') || error.config?.url?.includes('/login')
+
+      if (error.response?.status === 401) {
+        if (isLoginRequest) {
+          // If login failed, show the specific credentials/error toast
+          const msg = error.response?.data?.message || 'Invalid email or password.'
+          useToastStore.getState().addToast(msg, 'error')
+        } else {
+          // Clear session and redirect to login
+          useAuthStore.getState().clearAuth()
+          window.location.href = '/login'
+        }
+      } else {
+        // Handle all other API failures globally
+        let msg = ''
+        if (!error.response) {
+          // Network or server offline error
+          if (error.code === 'ECONNABORTED') {
+            msg = 'Connection timeout. Please check your internet connection and try again.'
+          } else {
+            msg = 'Network error: Cannot connect to the API server. Please check if the server is running.'
+          }
+        } else {
+          const { status, data } = error.response
+          
+          if (status === 422 && data) {
+            // Validation errors
+            if (data.errors && typeof data.errors === 'object') {
+              const validationMessages = Object.values(data.errors)
+                .flat()
+                .join(' ')
+              msg = validationMessages || data.message || 'Validation error. Please verify the input values.'
+            } else {
+              msg = data.message || 'Validation error. Please verify the input values.'
+            }
+          } else if (status === 403) {
+            msg = data?.message || 'Access denied: You do not have permission to perform this action.'
+          } else if (status === 404) {
+            msg = data?.message || 'Resource not found.'
+          } else if (status >= 500) {
+            msg = data?.message || 'Server error: Something went wrong on the server. Please try again later.'
+          } else {
+            msg = data?.message || `Request failed with status code ${status}.`
+          }
+        }
+
+        useToastStore.getState().addToast(msg, 'error')
+      }
     }
     return Promise.reject(error)
   }
