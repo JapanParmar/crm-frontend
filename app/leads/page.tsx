@@ -17,7 +17,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { formatDate, formatCurrency } from '@/lib/utils'
-import { Search, UserPlus, Phone, MessageSquare, CalendarPlus } from 'lucide-react'
+import { Search, UserPlus, Phone, MessageSquare, CalendarPlus, Download } from 'lucide-react'
 import Link from 'next/link'
 import { ScheduleFollowUpModal } from '@/components/leads/ScheduleFollowUpModal'
 
@@ -115,6 +115,140 @@ export default function LeadsPage() {
       setTimeout(() => setAlert(null), 4000)
     },
   })
+
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (permanent: boolean) =>
+      leadsApi.bulkDelete({ lead_ids: selectedLeadIds, permanent }),
+    onSuccess: (res) => {
+      setAlert({ type: 'success', message: (res.data as any).message || 'Leads deleted successfully!' })
+      setRowSelection({})
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['leads-counts'] })
+      setTimeout(() => setAlert(null), 4000)
+    },
+    onError: (err: unknown) => {
+      const e = err as { response?: { data?: { message?: string } } }
+      const msg = e?.response?.data?.message || 'Failed to delete leads.'
+      setAlert({ type: 'error', message: msg })
+      setTimeout(() => setAlert(null), 4000)
+    },
+  })
+
+  const handleBulkDelete = (permanent: boolean) => {
+    const actionText = permanent ? 'permanently delete' : 'delete'
+    const warningText = permanent 
+      ? 'This action CANNOT be undone and will permanently remove the leads from the database.' 
+      : 'This will move the leads to the recycle bin (soft delete).'
+      
+    if (confirm(`Are you sure you want to ${actionText} the ${selectedLeadIds.length} selected leads?\n${warningText}`)) {
+      bulkDeleteMutation.mutate(permanent)
+    }
+  }
+
+  // Export leads logic
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const exportParams = {
+        tab: activeTab,
+        search: debouncedSearch || undefined,
+        status: statusFilter || undefined,
+        source: sourceFilter || undefined,
+        priority: priorityFilter || undefined,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        limit: 10000,
+        page: 1,
+        sort_by: 'created_at',
+        sort_dir: 'desc' as const,
+      }
+
+      const res = await leadsApi.list(exportParams)
+      const exportLeads = res.data.data ?? []
+
+      if (exportLeads.length === 0) {
+        setAlert({ type: 'error', message: 'No leads found to export.' })
+        setTimeout(() => setAlert(null), 4000)
+        return
+      }
+
+      // Format leads as CSV
+      const headers = [
+        'Lead Number',
+        'Name',
+        'Phone',
+        'Alternate Phone',
+        'Email',
+        'Source',
+        'Status',
+        'Priority',
+        'BHK Preference',
+        'Preferred Location',
+        'City',
+        'Locality',
+        'Project Interest',
+        'Service Type',
+        'Budget Min',
+        'Budget Max',
+        'Score',
+        'Assigned To',
+        'Created At',
+        'Notes'
+      ]
+
+      const rows = exportLeads.map((lead) => [
+        lead.lead_number || '',
+        lead.name || '',
+        lead.phone || '',
+        lead.alternate_phone || '',
+        lead.email || '',
+        lead.source || '',
+        lead.status || '',
+        lead.priority || '',
+        lead.bhk_preference || '',
+        lead.preferred_location || '',
+        lead.city || '',
+        lead.locality || '',
+        lead.project_interest || '',
+        lead.service_type || '',
+        lead.budget_min || '',
+        lead.budget_max || '',
+        lead.score || 0,
+        lead.assigned_to?.name || 'Unassigned',
+        lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '',
+        (lead.notes || '').replace(/"/g, '""')
+      ])
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) => row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      
+      const dateStr = new Date().toISOString().split('T')[0]
+      link.setAttribute('href', url)
+      link.setAttribute('download', `leads_${activeTab}_export_${dateStr}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      setAlert({ type: 'success', message: `Exported ${exportLeads.length} leads successfully!` })
+      setTimeout(() => setAlert(null), 4000)
+    } catch (err) {
+      console.error(err)
+      setAlert({ type: 'error', message: 'Failed to export leads. Please try again.' })
+      setTimeout(() => setAlert(null), 4000)
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const leads = data?.data ?? []
   const meta = data?.meta
@@ -286,16 +420,29 @@ export default function LeadsPage() {
             activeTab={activeTab}
             onTabChange={handleTabChange}
             actions={
-              user?.permissions?.includes('create-leads') && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={<UserPlus className="w-3.5 h-3.5" />}
-                  onClick={() => setAddLeadOpen(true)}
-                >
-                  Add Lead
-                </Button>
-              )
+              <div className="flex items-center gap-2">
+                {user?.permissions?.includes('view-all-leads') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Download className="w-3.5 h-3.5" />}
+                    onClick={handleExport}
+                    disabled={isExporting}
+                  >
+                    {isExporting ? 'Exporting...' : 'Export'}
+                  </Button>
+                )}
+                {user?.permissions?.includes('create-leads') && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<UserPlus className="w-3.5 h-3.5" />}
+                    onClick={() => setAddLeadOpen(true)}
+                  >
+                    Add Lead
+                  </Button>
+                )}
+              </div>
             }
           />
 
@@ -436,7 +583,7 @@ export default function LeadsPage() {
             data={leads}
             loading={isLoading}
             getRowId={(row) => row.id.toString()}
-            enableSelection={!!user?.access?.assign_leads}
+            enableSelection={!!user?.access?.assign_leads || user?.permissions?.includes('delete-leads')}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             pageIndex={page - 1}
@@ -450,39 +597,65 @@ export default function LeadsPage() {
           />
         </div>
 
-        {/* Floating Bulk Assignment Bar */}
-        {selectedLeadIds.length > 0 && user?.access?.assign_leads && (
+        {/* Floating Bulk Action Bar */}
+        {selectedLeadIds.length > 0 && (user?.access?.assign_leads || user?.permissions?.includes('delete-leads')) && (
           <div className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto z-50 bg-[#1e1d1b] text-white px-4 py-3 rounded-2xl shadow-premium border border-stone-border/20 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
             <span className="text-xs font-bold whitespace-nowrap">{selectedLeadIds.length} leads selected</span>
             <div className="h-px sm:h-4 sm:w-px bg-white/20" />
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-bold text-stone-surface">Assign To:</span>
-              <select
-                onChange={(e) => {
-                  const val = e.target.value
-                  if (val === 'none') {
-                    bulkAssignMutation.mutate(null)
-                  } else if (val) {
-                    bulkAssignMutation.mutate(parseInt(val))
-                  }
-                }}
-                disabled={bulkAssignMutation.isPending}
-                defaultValue=""
-                className="flex-1 sm:flex-none h-9 px-2 rounded-lg border border-white/20 bg-stone-surface/10 text-white text-xs focus:outline-none focus:border-white cursor-pointer"
-              >
-                <option value="" className="text-heading-charcoal">
-                  Select Employee...
-                </option>
-                <option value="none" className="text-heading-charcoal">
-                  Unassign All
-                </option>
-                {(employeesData ?? []).map((emp) => (
-                  <option key={emp.id} value={emp.id} className="text-heading-charcoal">
-                    {emp.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            
+            {user?.access?.assign_leads && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-stone-surface">Assign:</span>
+                <select
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === 'none') {
+                      bulkAssignMutation.mutate(null)
+                    } else if (val) {
+                      bulkAssignMutation.mutate(parseInt(val))
+                    }
+                    e.target.value = "" // Reset select value after triggers
+                  }}
+                  disabled={bulkAssignMutation.isPending}
+                  defaultValue=""
+                  className="flex-1 sm:flex-none h-8 px-2 rounded-lg border border-white/20 bg-stone-surface/10 text-white text-xs focus:outline-none focus:border-white cursor-pointer"
+                >
+                  <option value="" className="text-heading-charcoal">Select Employee...</option>
+                  <option value="none" className="text-heading-charcoal">Unassign All</option>
+                  {(employeesData ?? []).map((emp) => (
+                    <option key={emp.id} value={emp.id} className="text-heading-charcoal">
+                      {emp.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {user?.permissions?.includes('delete-leads') && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="xs"
+                  className="bg-alert-red/20 text-alert-red hover:bg-alert-red/30 border border-alert-red/30 text-xs px-2.5 py-1"
+                  onClick={() => handleBulkDelete(false)}
+                  disabled={bulkDeleteMutation.isPending}
+                >
+                  Delete
+                </Button>
+                {user?.roles?.includes('superadmin') && (
+                  <Button
+                    variant="primary"
+                    size="xs"
+                    className="bg-alert-red text-white hover:bg-alert-red/90 text-xs px-2.5 py-1 font-semibold"
+                    onClick={() => handleBulkDelete(true)}
+                    disabled={bulkDeleteMutation.isPending}
+                  >
+                    Delete Permanently
+                  </Button>
+                )}
+              </div>
+            )}
+            
             <button
               onClick={() => setRowSelection({})}
               className="text-[10px] font-bold text-[#e6e2dd] hover:text-white uppercase tracking-wider transition-colors text-center touch-manipulation"

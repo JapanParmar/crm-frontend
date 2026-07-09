@@ -41,7 +41,7 @@ import { ScheduleFollowUpModal } from '@/components/leads/ScheduleFollowUpModal'
 import { CompleteFollowUpModal } from '@/components/leads/CompleteFollowUpModal'
 import { ScheduleSiteVisitModal } from '@/components/leads/ScheduleSiteVisitModal'
 import { CompleteSiteVisitModal } from '@/components/leads/CompleteSiteVisitModal'
-import { ConfirmDialog } from '@/components/ui/modal'
+import { Modal, ConfirmDialog } from '@/components/ui/modal'
 
 const PIPELINE_STAGES = [
   { status: 'new', label: 'New' },
@@ -167,8 +167,10 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
     },
   })
 
+  const [deletePermanent, setDeletePermanent] = useState(false)
+
   const deleteMutation = useMutation({
-    mutationFn: () => leadsApi.delete(id),
+    mutationFn: (permanent?: boolean) => leadsApi.delete(id, permanent),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] })
       queryClient.invalidateQueries({ queryKey: ['leads-counts'] })
@@ -542,7 +544,7 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
                         {fu.assigned_to && <p className="text-[10px] text-muted-gray mt-1">Handled by {fu.assigned_to.name}</p>}
                       </div>
                       
-                      {fu.status === 'scheduled' && (
+                      {fu.status === 'scheduled' && user?.permissions?.includes('update-followups') && (
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <Button
                             variant="secondary"
@@ -634,7 +636,7 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
                         {visit.attended_by && <p className="text-[10px] text-muted-gray mt-1">Attended by {visit.attended_by.name}</p>}
                       </div>
 
-                      {visit.status === 'scheduled' && (
+                      {visit.status === 'scheduled' && user?.permissions?.includes('update-site-visits') && (
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <Button
                             variant="secondary"
@@ -668,16 +670,64 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
         }}
       />
 
-      <ConfirmDialog
+      <Modal
         open={deleteOpen}
+        onClose={() => {
+          setDeleteOpen(false)
+          setDeletePermanent(false)
+        }}
         title="Delete Lead"
-        description={`Are you sure you want to permanently delete lead "${lead.name}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        variant="danger"
-        loading={deleteMutation.isPending}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={() => deleteMutation.mutate()}
-      />
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-body-brown">
+            Are you sure you want to delete lead <strong className="text-ink-black">"{lead.name}"</strong>?
+          </p>
+          
+          {user?.roles?.includes('superadmin') ? (
+            <div className="flex items-start gap-2 p-3 bg-alert-red/5 border border-alert-red/20 rounded-lg">
+              <input
+                type="checkbox"
+                id="delete-permanent"
+                checked={deletePermanent}
+                onChange={(e) => setDeletePermanent(e.target.checked)}
+                className="mt-0.5 w-3.5 h-3.5 rounded border border-stone-border accent-alert-red cursor-pointer bg-white"
+              />
+              <label htmlFor="delete-permanent" className="text-xs text-alert-red font-semibold cursor-pointer select-none">
+                Permanently delete from database
+                <span className="block text-[10px] text-muted-gray font-normal mt-0.5">
+                  Check this box to bypass soft delete and force delete the lead. This action cannot be undone.
+                </span>
+              </label>
+            </div>
+          ) : (
+            <p className="text-[10px] text-muted-gray">
+              This lead will be soft-deleted and can be recovered later.
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDeleteOpen(false)
+                setDeletePermanent(false)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => deleteMutation.mutate(deletePermanent)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Deleting...' : deletePermanent ? 'Delete Permanently' : 'Delete'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <ScheduleFollowUpModal
         open={scheduleFuOpen}

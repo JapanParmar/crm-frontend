@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageHeader } from '@/components/layout/AppHeader'
 import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { useAppStore } from '@/store/useAppStore'
+import { useCurrentUser } from '@/store/useAuthStore'
 import { useToastStore } from '@/store/useToastStore'
 import { rbacApi, ApiRole } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -123,6 +124,7 @@ const PERMISSION_METADATA: Record<string, { title: string; desc: string; categor
 export default function RbacPage() {
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
   const queryClient = useQueryClient()
+  const user = useCurrentUser()
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null)
   const [newRoleOpen, setNewRoleOpen] = useState(false)
   const [newRoleName, setNewRoleName] = useState('')
@@ -306,18 +308,20 @@ export default function RbacPage() {
             title="Role-Based Access Control"
             description="Manage workspace user permission sets."
             actions={
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<Plus className="w-3.5 h-3.5" />}
-                onClick={() => {
-                  setNewRoleName('')
-                  setNewRoleError(null)
-                  setNewRoleOpen(true)
-                }}
-              >
-                Add Role
-              </Button>
+              user?.permissions?.includes('manage-rbac') ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Plus className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    setNewRoleName('')
+                    setNewRoleError(null)
+                    setNewRoleOpen(true)
+                  }}
+                >
+                  Add Role
+                </Button>
+              ) : undefined
             }
           />
         </div>
@@ -375,36 +379,38 @@ export default function RbacPage() {
             </div>
 
             {/* Dedicated Inline Add Role Card */}
-            <div className="bg-white border border-stone-surface rounded-cards p-4 flex flex-col gap-2.5 flex-shrink-0">
-              <span className="text-[10px] font-semibold text-muted-gray uppercase tracking-wider">
-                Create New Role
-              </span>
-              <form onSubmit={handleCreateRoleInline} className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="e.g. sales-manager"
-                  value={inlineRoleName}
-                  onChange={(e) => {
-                    setInlineRoleName(e.target.value)
-                    setInlineRoleError(null)
-                  }}
-                  className="w-full px-3 py-2 text-xs bg-[#fcfbf9] border border-stone-surface rounded-inputs text-heading-charcoal placeholder-muted-gray focus:outline-none focus:border-ink-black transition-colors"
-                  style={{ outline: 'none' }}
-                  required
-                />
-                {inlineRoleError && (
-                  <p className="text-[10px] text-alert-red font-medium leading-none">{inlineRoleError}</p>
-                )}
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="w-full text-xs py-1.5"
-                  loading={createRoleMutationInline.isPending}
-                >
-                  Create Role
-                </Button>
-              </form>
-            </div>
+            {user?.permissions?.includes('manage-rbac') && (
+              <div className="bg-white border border-stone-surface rounded-cards p-4 flex flex-col gap-2.5 flex-shrink-0">
+                <span className="text-[10px] font-semibold text-muted-gray uppercase tracking-wider">
+                  Create New Role
+                </span>
+                <form onSubmit={handleCreateRoleInline} className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. sales-manager"
+                    value={inlineRoleName}
+                    onChange={(e) => {
+                      setInlineRoleName(e.target.value)
+                      setInlineRoleError(null)
+                    }}
+                    className="w-full px-3 py-2 text-xs bg-[#fcfbf9] border border-stone-surface rounded-inputs text-heading-charcoal placeholder-muted-gray focus:outline-none focus:border-ink-black transition-colors"
+                    style={{ outline: 'none' }}
+                    required
+                  />
+                  {inlineRoleError && (
+                    <p className="text-[10px] text-alert-red font-medium leading-none">{inlineRoleError}</p>
+                  )}
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    className="w-full text-xs py-1.5"
+                    loading={createRoleMutationInline.isPending}
+                  >
+                    Create Role
+                  </Button>
+                </form>
+              </div>
+            )}
           </div>
 
           {/* Right Panel: Permissions Grid */}
@@ -429,7 +435,7 @@ export default function RbacPage() {
                       }
                     </p>
                   </div>
-                  {selectedRole.name !== 'superadmin' && (
+                  {selectedRole.name !== 'superadmin' && user?.permissions?.includes('manage-rbac') && (
                     <Button
                       variant="primary"
                       size="sm"

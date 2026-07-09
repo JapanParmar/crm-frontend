@@ -118,7 +118,9 @@ export const leadsApi = {
   update: (id: number | string, data: Partial<CreateLeadPayload>) =>
     api.patch<ApiSuccessResponse<ApiLead>>(`/leads/${id}`, data),
 
-  delete: (id: number | string) => api.delete(`/leads/${id}`),
+  delete: (id: number | string, permanent?: boolean) => api.delete(`/leads/${id}`, { params: { permanent } }),
+
+  bulkDelete: (data: { lead_ids: number[]; permanent?: boolean }) => api.delete('/leads/bulk-delete', { data }),
 
   followUps: (id: number | string) =>
     api.get<ApiSuccessResponse<ApiFollowUp[]>>(`/leads/${id}/follow-ups`),

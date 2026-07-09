@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/AppHeader'
 import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { ManageMemberModal } from '@/components/team/ManageMemberModal'
 import { useAppStore } from '@/store/useAppStore'
+import { useCurrentUser } from '@/store/useAuthStore'
 import { usersApi } from '@/lib/api'
 import type { ApiUserWithStats } from '@/lib/api'
 import { Avatar } from '@/components/ui/avatar'
@@ -21,6 +22,7 @@ export default function TeamPage() {
   const [manageOpen, setManageOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState<ApiUserWithStats | null>(null)
   const queryClient = useQueryClient()
+  const currentUser = useCurrentUser()
 
   // Fetch all users to allow managing them
   const { data, isLoading } = useQuery({
@@ -87,9 +89,11 @@ export default function TeamPage() {
             title="Team"
             description={`${activeCount} active team members`}
             actions={
-              <Button variant="primary" size="sm" icon={<UserPlus className="w-3.5 h-3.5" />} onClick={handleCreate}>
-                Add Member
-              </Button>
+              currentUser?.permissions?.includes('manage-users') ? (
+                <Button variant="primary" size="sm" icon={<UserPlus className="w-3.5 h-3.5" />} onClick={handleCreate}>
+                  Add Member
+                </Button>
+              ) : undefined
             }
           />
           {/* Filters Bar */}
@@ -300,13 +304,15 @@ export default function TeamPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleEdit(user)}
-                            className="p-1 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Edit Member"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
+                          {currentUser?.permissions?.includes('manage-users') && (
+                            <button
+                              onClick={() => handleEdit(user)}
+                              className="p-1 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Edit Member"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <div className={`w-2 h-2 rounded-full ${user.is_active ? 'bg-grass-green' : 'bg-muted-gray'}`} title={user.is_active ? 'Active' : 'Inactive'} />
                         </div>
                       </div>
