@@ -18,6 +18,8 @@ import {
   Import,
   ScrollText,
   Shield,
+  FolderKanban,
+  UserCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -32,6 +34,9 @@ export function AppSidebar() {
   const { clearAuth } = useAuthStore()
   const access = useAccess()
   const currentUser = useCurrentUser()
+  const isAdminOrHr = Boolean(
+    currentUser?.roles?.some((r) => ['admin', 'superadmin', 'hr'].includes(r.toLowerCase()))
+  )
 
   // Build navigation dynamically from access flags returned by /me
   const NAV_ITEMS = [
@@ -39,6 +44,7 @@ export function AppSidebar() {
       section: 'WORKSPACE',
       items: [
         access.dashboard && { label: 'Dashboard', icon: LayoutDashboard, href: '/' },
+        (access.projects ?? true) && { label: 'Projects', icon: FolderKanban, href: '/projects' },
         access.leads && { label: 'Leads', icon: Users, href: '/leads' },
         access.follow_ups && { label: 'Follow-ups', icon: Phone, href: '/follow-ups' },
         access.site_visits && { label: 'Site Visits', icon: Building2, href: '/site-visits' },
@@ -47,6 +53,11 @@ export function AppSidebar() {
     {
       section: 'MANAGEMENT',
       items: [
+        (access.hr ?? true) && {
+          label: isAdminOrHr ? 'HR & Employees' : 'My HR Center',
+          icon: UserCheck,
+          href: '/hr',
+        },
         access.users && { label: 'Team', icon: UserCog, href: '/team' },
         access.import_leads && { label: 'Import', icon: Import, href: '/import' },
         access.activity_log && { label: 'Activity', icon: ScrollText, href: '/activity' },
@@ -185,7 +196,7 @@ export function AppSidebar() {
             style={{ borderColor: 'var(--color-stone-border)' }}
           >
             <div className="flex items-center gap-2.5">
-              <Avatar name={currentUser.name} size="sm" className="flex-shrink-0" />
+              <Avatar name={currentUser.name} src={currentUser.profile_image || undefined} size="sm" className="flex-shrink-0" />
               <div className={cn('flex-1 min-w-0', sidebarCollapsed && 'md:hidden')}>
                 <p className="text-xs font-bold text-ink-black truncate">{currentUser.name}</p>
                 <p className="text-[10px] truncate" style={{ color: 'var(--color-muted-gray)' }}>

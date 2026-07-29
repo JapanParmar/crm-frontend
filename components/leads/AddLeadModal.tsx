@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Modal } from '@/components/ui/modal'
 import { Input, Select, Textarea } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { leadsApi, usersApi } from '@/lib/api'
+import { leadsApi, usersApi, projectsApi } from '@/lib/api'
 import type { ApiLead } from '@/lib/api'
 
 const leadSchema = z.object({
@@ -28,6 +28,7 @@ const leadSchema = z.object({
   city: z.string().optional(),
   locality: z.string().optional(),
   project_interest: z.string().optional(),
+  project_id: z.string().optional(),
   bhk_preference: z.string().optional(),
   listing_id: z.string().optional(),
   lead_provider_ref: z.string().optional(),
@@ -56,7 +57,15 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
     enabled: open,
   })
 
+  // Load projects for project linkage
+  const { data: projectsData } = useQuery({
+    queryKey: ['projects-list'],
+    queryFn: () => projectsApi.list({ limit: 100 }).then((r) => r.data.data),
+    enabled: open,
+  })
+
   const employees = employeesData ?? []
+  const projects = projectsData ?? []
 
   const form = useForm<LeadFormData>({
     resolver: zodResolver(leadSchema),
@@ -87,6 +96,7 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
           city: lead.city || '',
           locality: lead.locality || '',
           project_interest: lead.project_interest || '',
+          project_id: lead.project_id ? String(lead.project_id) : (lead.project?.id ? String(lead.project.id) : ''),
           bhk_preference: lead.bhk_preference || '',
           listing_id: lead.listing_id || '',
           lead_provider_ref: lead.lead_provider_ref || '',
@@ -111,6 +121,7 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
           city: '',
           locality: '',
           project_interest: '',
+          project_id: '',
           bhk_preference: '',
           listing_id: '',
           lead_provider_ref: '',
@@ -143,6 +154,7 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
         city: data.city || undefined,
         locality: data.locality || undefined,
         project_interest: data.project_interest || undefined,
+        project_id: data.project_id ? parseInt(data.project_id) : undefined,
         bhk_preference: data.bhk_preference || undefined,
         listing_id: data.listing_id || undefined,
         lead_provider_ref: data.lead_provider_ref || undefined,
@@ -277,9 +289,13 @@ export function AddLeadModal({ open, lead, onClose, onSuccess }: AddLeadModalPro
             <Input label="Max Budget (₹)" type="number" placeholder="e.g. 10000000" {...form.register('budget_max')} />
             <Input label="City" placeholder="e.g. Bengaluru" {...form.register('city')} />
             <Input label="Locality" placeholder="e.g. Whitefield" {...form.register('locality')} />
-            <div className="sm:col-span-2">
-              <Input label="Project Interest" placeholder="e.g. Prestige Skyline, Brigade Utopia" {...form.register('project_interest')} />
-            </div>
+            <Select
+              label="Linked CRM Project"
+              placeholder={projects.length === 0 ? 'Loading projects...' : 'Select associated project'}
+              options={projects.map((p) => ({ value: String(p.id), label: `${p.name} (${p.code}) - ${p.city || ''}` }))}
+              {...form.register('project_id')}
+            />
+            <Input label="Project Interest / Sub-Name" placeholder="e.g. Prestige Skyline Tower B" {...form.register('project_interest')} />
             <div className="sm:col-span-2">
               <Input label="Preferred Location (General Description)" placeholder="e.g. near Metro, high floor" {...form.register('preferred_location')} />
             </div>

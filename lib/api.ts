@@ -91,6 +91,14 @@ export const authApi = {
     api.put<ApiSuccessResponse<Record<string, any>>>('/me/preferences', { preferences }),
 
   logout: () => api.post('/logout'),
+
+  uploadProfileImage: (file: File) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return api.post<ApiSuccessResponse<AuthUser>>('/me/profile-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +235,112 @@ export const activityApi = {
     api.get<PaginatedApiResponse<ApiActivity>>('/activity', { params }),
 }
 
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+export const projectsApi = {
+  list: (params?: ProjectListParams) =>
+    api.get<PaginatedApiResponse<ApiProject>>('/projects', { params }),
+
+  counts: () => api.get<ApiSuccessResponse<ProjectCounts>>('/projects/counts'),
+
+  get: (id: number | string) =>
+    api.get<ApiSuccessResponse<ApiProject>>(`/projects/${id}`),
+
+  create: (data: CreateProjectPayload) =>
+    api.post<ApiSuccessResponse<ApiProject>>('/projects', data),
+
+  update: (id: number | string, data: Partial<CreateProjectPayload>) =>
+    api.patch<ApiSuccessResponse<ApiProject>>(`/projects/${id}`, data),
+
+  delete: (id: number | string) => api.delete(`/projects/${id}`),
+
+  uploadImage: (
+    id: number | string,
+    file: File,
+    metadata?: { type?: 'image' | 'pdf' | 'pdf_page'; pdf_url?: string; pdf_name?: string; page_number?: number; name?: string }
+  ) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    if (metadata) {
+      if (metadata.type) formData.append('type', metadata.type)
+      if (metadata.pdf_url) formData.append('pdf_url', metadata.pdf_url)
+      if (metadata.pdf_name) formData.append('pdf_name', metadata.pdf_name)
+      if (metadata.page_number) formData.append('page_number', String(metadata.page_number))
+      if (metadata.name) formData.append('name', metadata.name)
+    }
+    return api.post<ApiSuccessResponse<ApiProject>>(`/projects/${id}/upload-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+
+  deleteImage: (id: number | string, imageUrl: string) =>
+    api.post<ApiSuccessResponse<ApiProject>>(`/projects/${id}/delete-image`, { url: imageUrl }),
+}
+
+// ---------------------------------------------------------------------------
+// HR Employees
+// ---------------------------------------------------------------------------
+export const employeesApi = {
+  list: (params?: EmployeeListParams) =>
+    api.get<PaginatedApiResponse<ApiHREmployee>>('/employees', { params }),
+
+  stats: () => api.get<ApiSuccessResponse<HREmployeeStats>>('/employees/stats'),
+
+  get: (id: number | string) =>
+    api.get<ApiSuccessResponse<ApiHREmployee>>(`/employees/${id}`),
+
+  create: (data: CreateHREmployeePayload) =>
+    api.post<ApiSuccessResponse<ApiHREmployee>>('/employees', data),
+
+  update: (id: number | string, data: Partial<CreateHREmployeePayload>) =>
+    api.patch<ApiSuccessResponse<ApiHREmployee>>(`/employees/${id}`, data),
+
+  delete: (id: number | string) => api.delete(`/employees/${id}`),
+
+  uploadImage: (id: number | string, file: File) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    return api.post<ApiSuccessResponse<ApiHREmployee>>(`/employees/${id}/upload-image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+}
+
+// ---------------------------------------------------------------------------
+// HRM System (Attendance, Leaves, Payroll)
+// ---------------------------------------------------------------------------
+export const hrmApi = {
+  todayAttendance: () =>
+    api.get<ApiSuccessResponse<{ has_employee_profile: boolean; employee?: ApiHREmployee; attendance: ApiAttendance | null }>>('/hrm/attendance/today'),
+
+  clockIn: (notes?: string) =>
+    api.post<ApiSuccessResponse<ApiAttendance>>('/hrm/attendance/clock-in', { notes }),
+
+  clockOut: () =>
+    api.post<ApiSuccessResponse<ApiAttendance>>('/hrm/attendance/clock-out'),
+
+  attendances: (params?: { employee_id?: number; status?: string; date?: string; page?: number; limit?: number }) =>
+    api.get<PaginatedApiResponse<ApiAttendance>>('/hrm/attendances', { params }),
+
+  leaves: (params?: { employee_id?: number; status?: string; page?: number; limit?: number }) =>
+    api.get<PaginatedApiResponse<ApiLeave>>('/hrm/leaves', { params }),
+
+  applyLeave: (data: { leave_type: string; start_date: string; end_date: string; reason: string }) =>
+    api.post<ApiSuccessResponse<ApiLeave>>('/hrm/leaves', data),
+
+  updateLeaveStatus: (id: number | string, data: { status: 'approved' | 'rejected' | 'pending'; admin_notes?: string }) =>
+    api.patch<ApiSuccessResponse<ApiLeave>>(`/hrm/leaves/${id}/status`, data),
+
+  payrolls: (params?: { employee_id?: number; month?: number; year?: number; page?: number; limit?: number }) =>
+    api.get<PaginatedApiResponse<ApiPayroll>>('/hrm/payrolls', { params }),
+
+  processPayroll: (data: { month: number; year: number }) =>
+    api.post<ApiSuccessResponse<any>>('/hrm/payrolls/process', data),
+}
+
 // ===========================================================================
 // API Response Types — must match exactly what Laravel returns
 // ===========================================================================
@@ -269,6 +383,7 @@ export interface AuthUser {
   roles: string[]
   permissions: string[]
   access: AccessFlags
+  profile_image?: string | null
 }
 
 export interface AccessFlags {
@@ -284,6 +399,8 @@ export interface AccessFlags {
   activity_log: boolean
   settings: boolean
   rbac?: boolean
+  projects?: boolean
+  hr?: boolean
 }
 
 export interface ApiLead {
@@ -312,6 +429,8 @@ export interface ApiLead {
   score: number
   notes: string | null
   tags: string[]
+  project_id?: number | null
+  project?: ApiProject | null
   assigned_to: { id: number; name: string; email: string } | null
   is_duplicate: boolean
   follow_up_count: number
@@ -560,4 +679,210 @@ export interface CreateUserPayload {
   phone?: string
   role: string
   is_active?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Projects Types
+// ---------------------------------------------------------------------------
+export type ProjectImageItem = string | {
+  url: string
+  type: 'image' | 'pdf' | 'pdf_page'
+  name: string
+  pdf_url?: string
+  pdf_name?: string
+  page_number?: number
+}
+export interface ApiProject {
+  id: number
+  name: string
+  code: string
+  type: 'residential' | 'commercial' | 'mixed_use' | 'industrial' | 'plot'
+  status: 'planning' | 'active' | 'under_construction' | 'completed' | 'on_hold'
+  location: string | null
+  city: string | null
+  developer: string | null
+  budget: number | null
+  total_units: number
+  available_units: number
+  sold_units: number
+  price_min: number | null
+  price_max: number | null
+  launch_date: string | null
+  possession_date: string | null
+  description: string | null
+  amenities: string[] | null
+  manager: { id: number; name: string; email: string } | null
+  created_by: { id: number; name: string } | null
+  images?: ProjectImageItem[] | null
+  leads?: ApiLead[]
+  site_visits?: ApiSiteVisit[]
+  created_at: string
+  updated_at: string
+}
+
+export interface ProjectCounts {
+  all: number
+  active: number
+  under_construction: number
+  completed: number
+  total_units: number
+  available_units: number
+  sold_units: number
+}
+
+export interface ProjectListParams {
+  search?: string
+  type?: string
+  status?: string
+  city?: string
+  sort_by?: string
+  sort_dir?: 'asc' | 'desc'
+  limit?: number
+  page?: number
+}
+
+export interface CreateProjectPayload {
+  name: string
+  code: string
+  type: string
+  status: string
+  location?: string
+  city?: string
+  developer?: string
+  budget?: number
+  total_units?: number
+  available_units?: number
+  sold_units?: number
+  price_min?: number
+  price_max?: number
+  launch_date?: string
+  possession_date?: string
+  description?: string
+  amenities?: string[]
+  manager_id?: number
+}
+
+// ---------------------------------------------------------------------------
+// HR Employee Types
+// ---------------------------------------------------------------------------
+export interface ApiHREmployee {
+  id: number
+  user_id: number | null
+  user?: { id: number; name: string; email: string } | null
+  employee_code: string
+  first_name: string
+  last_name: string
+  email: string
+  phone: string
+  department: string
+  designation: string
+  employment_type: 'full_time' | 'part_time' | 'contract' | 'intern' | 'probation'
+  status: 'active' | 'on_leave' | 'suspended' | 'terminated'
+  joining_date: string
+  salary: number | null
+  pan_number: string | null
+  aadhar_number: string | null
+  emergency_contact_name: string | null
+  emergency_contact_phone: string | null
+  address: string | null
+  bank_name: string | null
+  account_number: string | null
+  ifsc_code: string | null
+  notes: string | null
+  profile_image?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface HREmployeeStats {
+  all: number
+  active: number
+  on_leave: number
+  full_time: number
+  total_payroll: number
+  departments: Record<string, number>
+}
+
+export interface EmployeeListParams {
+  search?: string
+  department?: string
+  status?: string
+  employment_type?: string
+  sort_by?: string
+  sort_dir?: 'asc' | 'desc'
+  limit?: number
+  page?: number
+}
+
+export interface CreateHREmployeePayload {
+  user_id?: number
+  employee_code: string
+  first_name: string
+  last_name: string
+  email: string
+  phone: string
+  department: string
+  designation: string
+  employment_type: string
+  status: string
+  joining_date: string
+  salary?: number
+  pan_number?: string
+  aadhar_number?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+  address?: string
+  bank_name?: string
+  account_number?: string
+  ifsc_code?: string
+  notes?: string
+}
+
+export interface ApiAttendance {
+  id: number
+  user_id: number | null
+  employee_id: number
+  employee?: ApiHREmployee
+  date: string
+  clock_in: string | null
+  clock_out: string | null
+  work_hours: number
+  status: 'present' | 'late' | 'half_day' | 'absent'
+  notes: string | null
+  created_at: string
+}
+
+export interface ApiLeave {
+  id: number
+  user_id: number | null
+  employee_id: number
+  employee?: ApiHREmployee
+  leave_type: 'casual' | 'sick' | 'earned' | 'unpaid'
+  start_date: string
+  end_date: string
+  days_count: number
+  reason: string
+  status: 'pending' | 'approved' | 'rejected'
+  approved_by: number | null
+  approver?: { id: number; name: string }
+  admin_notes: string | null
+  created_at: string
+}
+
+export interface ApiPayroll {
+  id: number
+  employee_id: number
+  employee?: ApiHREmployee
+  month: number
+  year: number
+  basic_salary: number
+  hra: number
+  allowances: number
+  deductions: number
+  net_salary: number
+  status: 'pending' | 'processing' | 'paid'
+  payment_date: string | null
+  payment_method: string | null
+  notes: string | null
+  created_at: string
 }

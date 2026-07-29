@@ -414,8 +414,6 @@ export default function LeadsPage() {
       <main className="flex flex-col h-full bg-cream-canvas relative" style={{ paddingTop: '56px' }}>
         <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10 flex-shrink-0">
           <PageHeader
-            title="Leads"
-            description={meta ? `${meta.total.toLocaleString()} total leads` : 'Loading…'}
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={handleTabChange}

@@ -80,8 +80,6 @@ export default function SiteVisitsPage() {
       <main className="flex flex-col h-full bg-cream-canvas" style={{ paddingTop: '56px' }}>
         <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10">
           <PageHeader
-            title="Site Visits"
-            description={meta ? `${meta.total} total site visits` : 'Loading…'}
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={(t) => { setActiveTab(t as Tab); setPage(1) }}

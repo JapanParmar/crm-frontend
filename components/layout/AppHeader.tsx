@@ -39,21 +39,23 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 z-20 flex items-center justify-between px-3 md:px-4 border-b transition-all duration-200 ease-in-out",
+        "fixed top-0 right-0 z-20 flex items-center justify-between px-4 md:px-6 border-b transition-all duration-200 ease-in-out shadow-[0_2px_12px_-4px_rgba(18,18,18,0.03),0_1px_3px_-1px_rgba(18,18,18,0.02)]",
         sidebarCollapsed ? "left-0 md:left-14" : "left-0 md:left-[220px]"
       )}
       style={{
         height: '56px',
-        backgroundColor: 'var(--color-cream-canvas)',
-        borderColor: 'var(--color-stone-surface)',
+        backgroundColor: 'rgba(252, 251, 249, 0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderColor: 'rgba(229, 225, 216, 0.6)',
       }}
     >
       {/* Left: Menu toggle + Back Button + Page Title Area */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         {/* Toggle sidebar button for mobile */}
         <button
           onClick={toggleSidebar}
-          className="md:hidden p-2 -ml-1 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black transition-colors flex-shrink-0 touch-manipulation"
+          className="md:hidden p-2 -ml-2 rounded-lg hover:bg-stone-surface text-body-brown hover:text-ink-black transition-all flex-shrink-0 touch-manipulation active:scale-95"
           aria-label="Toggle Navigation"
         >
           <Menu className="w-5 h-5" />
@@ -63,48 +65,56 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
         {backHref && (
           <Link
             href={backHref}
-            className="p-1.5 rounded hover:bg-stone-surface text-body-brown hover:text-ink-black transition-colors flex items-center justify-center border border-stone-border/45 bg-white flex-shrink-0"
+            className="p-1.5 rounded-lg hover:bg-stone-surface text-body-brown hover:text-ink-black transition-all flex items-center justify-center border border-stone-border/40 bg-white shadow-sm flex-shrink-0 hover:scale-[1.03] active:scale-95"
             aria-label="Go back"
           >
             <ChevronLeft className="w-4 h-4" />
           </Link>
         )}
 
-        {breadcrumbs && breadcrumbs.length > 0 && (
-          <div className="flex items-center gap-1 text-xs text-body-brown min-w-0">
+        {breadcrumbs && breadcrumbs.length > 0 ? (
+          <div className="flex items-center gap-1.5 text-xs text-body-brown min-w-0">
             {breadcrumbs.map((crumb, i) => (
               <React.Fragment key={i}>
-                {i > 0 && <span className="text-muted-gray mx-0.5 flex-shrink-0">/</span>}
+                {i > 0 && <span className="text-muted-gray/60 mx-0.5 flex-shrink-0">/</span>}
                 {crumb.href ? (
-                  <Link href={crumb.href} className="hover:text-ink-black transition-colors font-medium truncate hidden sm:block">
+                  <Link
+                    href={crumb.href}
+                    className="hover:text-ink-black hover:underline transition-all font-medium truncate hidden sm:block text-muted-gray"
+                  >
                     {crumb.label}
                   </Link>
                 ) : (
-                  <span className="text-heading-charcoal font-bold truncate">{crumb.label}</span>
+                  <span className="text-heading-charcoal font-bold truncate flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] flex-shrink-0" />
+                    {crumb.label}
+                  </span>
                 )}
               </React.Fragment>
             ))}
           </div>
-        )}
-        {!breadcrumbs && (
-          <div className="truncate min-w-0">
-            <h1 className="text-sm font-bold text-heading-charcoal leading-tight truncate">{title}</h1>
-            {subtitle && <p className="text-[10px] text-body-brown leading-tight truncate hidden sm:block">{subtitle}</p>}
+        ) : (
+          <div className="truncate min-w-0 flex flex-col justify-center">
+            <h1 className="text-sm font-extrabold text-heading-charcoal tracking-tight leading-tight truncate flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] flex-shrink-0 animate-pulse" />
+              {title}
+            </h1>
+            {subtitle && <p className="text-[10px] text-muted-gray leading-tight mt-0.5 font-medium truncate hidden sm:block">{subtitle}</p>}
           </div>
         )}
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
         {/* Search — hidden on mobile, shown on md+ */}
         <button
           onClick={() => setCommandPaletteOpen(true)}
-          className="hidden md:flex items-center gap-2 h-9 px-3.5 rounded-buttons border border-stone-border bg-white text-body-brown text-xs hover:border-ink-black hover:bg-stone-surface transition-all duration-100"
+          className="hidden md:flex items-center gap-2.5 h-9 px-3.5 rounded-buttons border border-stone-border bg-[#fcfbf9]/50 text-body-brown text-xs hover:border-ink-black/60 hover:bg-white hover:shadow-[0_2px_8px_-2px_rgba(18,18,18,0.06)] transition-all duration-150 active:scale-[0.98]"
           aria-label="Open search"
         >
-          <Search className="w-3 h-3 text-body-brown" />
-          <span className="hidden lg:block text-body-brown font-medium">Search...</span>
-          <kbd className="hidden lg:flex items-center gap-0.5 font-mono text-xs text-muted-gray">
+          <Search className="w-3.5 h-3.5 text-body-brown/80" />
+          <span className="hidden lg:block text-body-brown font-semibold">Search...</span>
+          <kbd className="hidden lg:flex items-center gap-0.5 font-mono text-[10px] bg-stone-surface px-1.5 py-0.5 rounded border border-stone-border text-muted-gray">
             <Command className="w-2.5 h-2.5" />K
           </kbd>
         </button>
@@ -112,7 +122,7 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
         {/* Search icon-only on mobile */}
         <button
           onClick={() => setCommandPaletteOpen(true)}
-          className="md:hidden p-2 rounded-full hover:bg-stone-surface text-body-brown hover:text-ink-black transition-colors touch-manipulation"
+          className="md:hidden p-2 rounded-full hover:bg-stone-surface text-body-brown hover:text-ink-black transition-all touch-manipulation active:scale-95"
           aria-label="Search"
         >
           <Search className="w-4.5 h-4.5" />
@@ -125,7 +135,7 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
             size="sm"
             icon={<Plus className="w-3.5 h-3.5" />}
             onClick={() => setAddLeadOpen(true)}
-            className="hidden sm:flex"
+            className="hidden sm:flex shadow-sm hover:shadow active:scale-95 transition-all"
           >
             Add Lead
           </Button>
@@ -134,7 +144,7 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
         {currentUser?.permissions?.includes('create-leads') && (
           <button
             onClick={() => setAddLeadOpen(true)}
-            className="sm:hidden w-8 h-8 rounded-full bg-ink-black text-white flex items-center justify-center flex-shrink-0 touch-manipulation"
+            className="sm:hidden w-8 h-8 rounded-full bg-ink-black text-white flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-95"
             aria-label="Add Lead"
           >
             <Plus className="w-4 h-4" />
@@ -149,19 +159,18 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
           <button
             onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileOpen(false) }}
             className={cn(
-              "relative w-8 h-8 rounded-full flex items-center justify-center text-body-brown hover:bg-stone-surface hover:text-ink-black transition-colors touch-manipulation",
+              "relative w-8.5 h-8.5 rounded-full flex items-center justify-center text-body-brown hover:bg-stone-surface hover:text-ink-black transition-all touch-manipulation active:scale-95",
               notificationsOpen && "bg-stone-surface text-ink-black"
             )}
             aria-label="Notifications"
           >
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-alert-red animate-pulse" />
+            <Bell className="w-4.5 h-4.5 transition-transform duration-100 hover:rotate-12" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-alert-red border-2 border-white animate-pulse" />
           </button>
 
           {notificationsOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setNotificationsOpen(false)} />
-              {/* Full-width on mobile, fixed width on desktop */}
               <div className="fixed right-2 left-2 sm:absolute sm:left-auto sm:right-0 sm:w-80 mt-2 bg-white rounded-cards border border-stone-surface shadow-premium z-40 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150" style={{ top: '56px' }}>
                 <div className="flex items-center justify-between border-b border-stone-surface pb-2">
                   <span className="text-xs font-bold text-heading-charcoal">Recent Notifications</span>
@@ -206,14 +215,17 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
             <button
               onClick={() => { setProfileOpen(!profileOpen); setNotificationsOpen(false) }}
               className={cn(
-                "flex items-center gap-1.5 rounded-buttons px-2 py-1 hover:bg-stone-surface border border-stone-border bg-white transition-colors touch-manipulation",
-                profileOpen && "bg-stone-surface"
+                "flex items-center gap-2 rounded-buttons px-2.5 py-1 hover:bg-stone-surface border border-stone-border bg-white transition-all shadow-sm active:scale-95 touch-manipulation",
+                profileOpen && "bg-stone-surface border-stone-border"
               )}
               aria-label="User profile menu"
             >
-              <Avatar name={currentUser.name} size="xs" />
-              <span className="hidden sm:block text-xs font-semibold text-heading-charcoal">{currentUser.name.split(' ')[0]}</span>
-              <ChevronDown className="w-3 h-3 text-muted-gray hidden sm:block" />
+              <div className="relative flex-shrink-0">
+                <Avatar name={currentUser.name} src={currentUser.profile_image || undefined} size="xs" />
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
+              </div>
+              <span className="hidden sm:block text-xs font-bold text-heading-charcoal">{currentUser.name.split(' ')[0]}</span>
+              <ChevronDown className={cn("w-3 h-3 text-muted-gray hidden sm:block transition-transform duration-200", profileOpen && "rotate-180")} />
             </button>
 
             {profileOpen && (
@@ -264,7 +276,7 @@ export function AppHeader({ title, subtitle, actions, breadcrumbs, backHref }: A
 
 // Page-level header below the app header
 interface PageHeaderProps {
-  title: string
+  title?: string
   description?: string
   actions?: React.ReactNode
   tabs?: { label: string; value: string; count?: number }[]
@@ -275,45 +287,54 @@ interface PageHeaderProps {
 export function PageHeader({ title, description, actions, tabs, activeTab, onTabChange }: PageHeaderProps) {
   return (
     <div className="flex flex-col gap-0 select-none">
-      {/* Title row */}
-      <div className="flex items-center justify-between px-4 md:px-5 py-3 md:py-4 border-b border-stone-surface bg-white relative overflow-hidden">
-        <div className="relative z-10 min-w-0 flex-1">
-          <h2 className="font-family-display text-base md:text-xl text-heading-charcoal tracking-tight truncate">{title}</h2>
-          {description && <p className="text-xs text-body-brown mt-0.5 font-medium truncate">{description}</p>}
+      {/* Title row — only render if title is present */}
+      {title && (
+        <div className="flex items-center justify-between px-4 md:px-5 py-3 md:py-4 border-b border-stone-surface bg-white relative overflow-hidden">
+          <div className="relative z-10 min-w-0 flex-1">
+            <h2 className="font-family-display text-base md:text-xl text-heading-charcoal tracking-tight truncate">{title}</h2>
+            {description && <p className="text-xs text-body-brown mt-0.5 font-medium truncate">{description}</p>}
+          </div>
+          {actions && <div className="flex items-center gap-2 relative z-10 flex-shrink-0 ml-3">{actions}</div>}
         </div>
-        {actions && <div className="flex items-center gap-2 relative z-10 flex-shrink-0 ml-3">{actions}</div>}
-      </div>
+      )}
 
       {/* Tabs */}
       {tabs && tabs.length > 0 && (
-        <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-5 py-1.5 border-b border-stone-surface bg-[#fcfbf9] overflow-x-auto scrollbar-none">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.value
-            return (
-              <button
-                key={tab.value}
-                onClick={() => onTabChange?.(tab.value)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-pills transition-all duration-100 border whitespace-nowrap touch-manipulation',
-                  isActive
-                    ? 'bg-ink-black text-white border-ink-black'
-                    : 'bg-transparent text-body-brown border-transparent hover:text-ink-black hover:bg-stone-surface'
-                )}
-              >
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span
-                    className={cn(
-                      'px-1.5 py-0.25 rounded-full text-[10px] font-bold border ml-0.5',
-                      isActive ? 'bg-[#ffcd6c] text-[#121212] border-[#ffcd6c]' : 'bg-stone-surface text-body-brown border-stone-border'
-                    )}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+        <div className="flex items-center justify-between px-4 md:px-5 py-1.5 border-b border-stone-surface bg-[#fcfbf9] overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 md:gap-2">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.value
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => onTabChange?.(tab.value)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-pills transition-all duration-100 border whitespace-nowrap touch-manipulation',
+                    isActive
+                      ? 'bg-ink-black text-white border-ink-black'
+                      : 'bg-transparent text-body-brown border-transparent hover:text-ink-black hover:bg-stone-surface'
+                  )}
+                >
+                  {tab.label}
+                  {tab.count !== undefined && (
+                    <span
+                      className={cn(
+                        'px-1.5 py-0.25 rounded-full text-[10px] font-bold border ml-0.5',
+                        isActive ? 'bg-[#ffcd6c] text-[#121212] border-[#ffcd6c]' : 'bg-stone-surface text-body-brown border-stone-border'
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          {!title && actions && (
+            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+              {actions}
+            </div>
+          )}
         </div>
       )}
     </div>

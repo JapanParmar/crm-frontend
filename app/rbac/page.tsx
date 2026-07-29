@@ -259,7 +259,26 @@ export default function RbacPage() {
 
   return (
     <AppShell>
-      <AppHeader title="Access Control (RBAC)" subtitle="Configure dynamic team access controls" />
+      <AppHeader
+        title="Access Control (RBAC)"
+        subtitle="Configure dynamic team access controls"
+        actions={
+          user?.permissions?.includes('manage-rbac') && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Plus className="w-3.5 h-3.5" />}
+              onClick={() => {
+                setNewRoleName('')
+                setNewRoleError(null)
+                setNewRoleOpen(true)
+              }}
+            >
+              Add Role
+            </Button>
+          )
+        }
+      />
       <AddLeadModal open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
 
       {/* New Role Modal */}
@@ -303,29 +322,6 @@ export default function RbacPage() {
       </Modal>
 
       <main className="flex flex-col h-full bg-cream-canvas select-none" style={{ paddingTop: '56px' }}>
-        <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10">
-          <PageHeader
-            title="Role-Based Access Control"
-            description="Manage workspace user permission sets."
-            actions={
-              user?.permissions?.includes('manage-rbac') ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={<Plus className="w-3.5 h-3.5" />}
-                  onClick={() => {
-                    setNewRoleName('')
-                    setNewRoleError(null)
-                    setNewRoleOpen(true)
-                  }}
-                >
-                  Add Role
-                </Button>
-              ) : undefined
-            }
-          />
-        </div>
-
         <div className="flex-1 overflow-hidden p-5 flex flex-col md:flex-row gap-5 max-w-6xl mx-auto w-full h-[calc(100vh-170px)]">
           {/* Left Container */}
           <div className="w-full md:w-64 flex-shrink-0 flex flex-col gap-4 h-[450px] md:h-full">

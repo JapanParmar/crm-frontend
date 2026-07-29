@@ -19,7 +19,9 @@ import {
   Activity,
   ShieldAlert,
   Plus,
-  Loader2
+  FolderKanban,
+  UserCheck,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -83,6 +85,22 @@ export function CommandPalette() {
       subtitle: 'Overview of metrics & follow-ups',
       icon: <LayoutDashboard className="w-4 h-4" />,
       action: () => { router.push('/'); setCommandPaletteOpen(false) },
+      category: 'Navigation'
+    },
+    {
+      id: 'nav-projects',
+      title: 'Go to Projects',
+      subtitle: 'Manage property portfolios & inventory',
+      icon: <FolderKanban className="w-4 h-4" />,
+      action: () => { router.push('/projects'); setCommandPaletteOpen(false) },
+      category: 'Navigation'
+    },
+    {
+      id: 'nav-hr',
+      title: 'Go to HR & Employees',
+      subtitle: 'Workforce directory, payroll & staff profiles',
+      icon: <UserCheck className="w-4 h-4" />,
+      action: () => { router.push('/hr'); setCommandPaletteOpen(false) },
       category: 'Navigation'
     },
     {

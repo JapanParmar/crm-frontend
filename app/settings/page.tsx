@@ -14,9 +14,13 @@ import {
   Briefcase, 
   Check, 
   Eye, 
-  Sparkles
+  Sparkles,
+  User as UserIcon,
+  Upload,
+  Loader2,
 } from 'lucide-react'
 import { Skeleton, LoadingSpinner, FullPageLoader } from '@/components/ui/skeleton'
+import { Avatar } from '@/components/ui/avatar'
 
 export default function SettingsPage() {
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
@@ -31,8 +35,27 @@ export default function SettingsPage() {
   } = useAppStore()
   
   const addToast = useToastStore((s) => s.addToast)
-  const [activeTab, setActiveTab] = useState<'appearance' | 'workspace'>('appearance')
+  const currentUser = useAuthStore((s) => s.user)
+  const [activeTab, setActiveTab] = useState<'profile' | 'appearance' | 'workspace'>('profile')
   const [testingLoader, setTestingLoader] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+  const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentUser || !e.target.files || e.target.files.length === 0) return
+    const file = e.target.files[0]
+    try {
+      setUploadingAvatar(true)
+      const res = await authApi.uploadProfileImage(file)
+      if (res.data?.success) {
+        useAuthStore.getState().updateUser(res.data.data)
+        addToast('Profile picture updated successfully.', 'success')
+      }
+    } catch (err: any) {
+      addToast(err.response?.data?.message || 'Failed to upload profile picture.', 'error')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const savePrefs = async (updates: {
     fontSize?: typeof fontSize
@@ -115,6 +138,17 @@ export default function SettingsPage() {
           {/* Tab Navigation */}
           <div className="flex border-b border-stone-border gap-6 text-sm font-medium">
             <button
+              onClick={() => setActiveTab('profile')}
+              className={`pb-3 flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+                activeTab === 'profile'
+                  ? 'border-ember text-heading-charcoal font-semibold'
+                  : 'border-transparent text-muted-gray hover:text-heading-charcoal'
+              }`}
+            >
+              <UserIcon className="w-4 h-4" />
+              My Profile
+            </button>
+            <button
               onClick={() => setActiveTab('appearance')}
               className={`pb-3 flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
                 activeTab === 'appearance'
@@ -138,7 +172,69 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {activeTab === 'appearance' ? (
+          {activeTab === 'profile' ? (
+            <div className="max-w-2xl mx-auto w-full bg-white p-8 rounded-cards border border-stone-border shadow-sm flex flex-col items-center gap-6">
+              <div className="text-center">
+                <h3 className="font-family-display text-sm font-semibold text-heading-charcoal">My Personal Profile</h3>
+                <p className="text-[11px] text-muted-gray mt-0.5">Manage your personal account credentials and profile picture.</p>
+              </div>
+
+              {/* Profile Image & Upload */}
+              <div className="relative group flex flex-col items-center gap-3">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-stone-border shadow-inner bg-stone-surface flex items-center justify-center">
+                  <Avatar
+                    name={currentUser?.name || 'User'}
+                    src={currentUser?.profile_image || undefined}
+                    size="lg"
+                    className="w-full h-full text-xl"
+                  />
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-ink-black/40 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+
+                <label className="flex items-center gap-1.5 cursor-pointer bg-ink-black hover:bg-ink-black/90 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Picture</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUploadAvatar}
+                    disabled={uploadingAvatar}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* User fields details */}
+              <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-stone-border pt-6 text-xs">
+                <div className="bg-stone-surface p-4 rounded-xl border border-stone-border flex flex-col gap-1">
+                  <span className="text-muted-gray uppercase font-semibold text-[10px]">Full Name</span>
+                  <span className="font-bold text-heading-charcoal text-sm">{currentUser?.name}</span>
+                </div>
+                <div className="bg-stone-surface p-4 rounded-xl border border-stone-border flex flex-col gap-1">
+                  <span className="text-muted-gray uppercase font-semibold text-[10px]">Email Address</span>
+                  <span className="font-semibold text-body-brown text-sm">{currentUser?.email}</span>
+                </div>
+                <div className="bg-stone-surface p-4 rounded-xl border border-stone-border flex flex-col gap-1">
+                  <span className="text-muted-gray uppercase font-semibold text-[10px]">Phone Contact</span>
+                  <span className="font-semibold text-body-brown text-sm">{currentUser?.phone || 'Not Provided'}</span>
+                </div>
+                <div className="bg-stone-surface p-4 rounded-xl border border-stone-border flex flex-col gap-1">
+                  <span className="text-muted-gray uppercase font-semibold text-[10px]">System Roles</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {currentUser?.roles?.map((r, i) => (
+                      <span key={i} className="bg-sun-yellow/15 border border-stone-border text-gold text-[9px] font-bold uppercase px-2 py-0.5 rounded-badges">
+                        {r}
+                      </span>
+                    )) || <span className="text-muted-gray">None</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'appearance' ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
               {/* Left Column: Form Controls */}

@@ -219,12 +219,7 @@ export default function ReportsPage() {
       <AddLeadModal open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
 
       <main className="flex flex-col h-full bg-cream-canvas select-none" style={{ paddingTop: '56px' }}>
-        <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10">
-          <PageHeader
-            title="CRM Analytics Reports"
-            description="Insightful metrics on lead sources and team performance."
-          />
-        </div>
+
 
         <div className="flex-1 overflow-y-auto p-3 md:p-5 space-y-4 md:space-y-6 max-w-6xl mx-auto w-full">
           {isLoading ? (

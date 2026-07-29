@@ -102,8 +102,6 @@ export default function FollowUpsPage() {
       <main className="flex flex-col h-full bg-cream-canvas" style={{ paddingTop: '56px' }}>
         <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10">
           <PageHeader
-            title="Follow-ups"
-            description={meta ? `${meta.total} total follow-ups` : 'Loading…'}
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={handleTabChange}

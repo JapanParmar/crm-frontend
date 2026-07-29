@@ -152,12 +152,7 @@ export default function CalendarPage() {
       <AddLeadModal open={addLeadOpen} onClose={() => setAddLeadOpen(false)} />
 
       <main className="flex flex-col h-full bg-cream-canvas select-none" style={{ paddingTop: '56px' }}>
-        <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10">
-          <PageHeader
-            title="Schedule Calendar"
-            description="Manage client engagements chronologically."
-          />
-        </div>
+
 
         <div className="flex-1 overflow-hidden p-5 flex flex-col md:flex-row gap-5 max-w-6xl mx-auto w-full h-[calc(100vh-170px)]">
           {/* Left Column: Interactive Mini Calendar */}

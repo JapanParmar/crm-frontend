@@ -86,8 +86,6 @@ export default function TeamPage() {
       <main className="flex flex-col h-full bg-cream-canvas" style={{ paddingTop: '56px' }}>
         <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10">
           <PageHeader
-            title="Team"
-            description={`${activeCount} active team members`}
             actions={
               currentUser?.permissions?.includes('manage-users') ? (
                 <Button variant="primary" size="sm" icon={<UserPlus className="w-3.5 h-3.5" />} onClick={handleCreate}>

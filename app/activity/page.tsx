@@ -74,11 +74,7 @@ export default function ActivityLogPage() {
 
       <main className="flex flex-col h-full bg-cream-canvas" style={{ paddingTop: '56px' }}>
         <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10">
-          <PageHeader
-            title="Activity Feed"
-            description="Real-time workspace activity audit log"
-          />
-          <div className="px-4 py-2.5 flex items-center justify-end gap-2 flex-wrap border-t border-stone-surface/40">
+          <div className="px-4 py-2.5 flex items-center justify-end gap-2 flex-wrap">
             {/* Created From date picker */}
             <div className="flex items-center gap-1.5 bg-white border border-stone-border rounded-lg h-9 px-2.5">
               <span className="text-[10px] uppercase font-bold text-muted-gray">From:</span>

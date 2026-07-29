@@ -76,6 +76,8 @@ export const useAccess = () => {
     activity_log: false,
     settings: false,
     rbac: false,
+    projects: false,
+    hr: false,
   }
   return user?.access ?? defaults
 }
