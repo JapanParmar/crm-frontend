@@ -98,8 +98,13 @@ export default function ProjectsPage() {
     code: '',
     type: 'residential',
     status: 'active',
+    rera_number: '',
     location: '',
     city: '',
+    state: '',
+    pincode: '',
+    landmark: '',
+    google_map_url: '',
     developer: '',
     budget: undefined,
     total_units: 0,
@@ -109,6 +114,8 @@ export default function ProjectsPage() {
     price_max: undefined,
     launch_date: '',
     possession_date: '',
+    construction_stage: '',
+    construction_pct: 0,
     description: '',
     amenities: [],
   })
@@ -320,8 +327,13 @@ export default function ProjectsPage() {
       code: '',
       type: 'residential',
       status: 'active',
+      rera_number: '',
       location: '',
       city: '',
+      state: '',
+      pincode: '',
+      landmark: '',
+      google_map_url: '',
       developer: '',
       budget: undefined,
       total_units: 0,
@@ -331,6 +343,8 @@ export default function ProjectsPage() {
       price_max: undefined,
       launch_date: '',
       possession_date: '',
+      construction_stage: '',
+      construction_pct: 0,
       description: '',
       amenities: [],
     })
@@ -345,8 +359,13 @@ export default function ProjectsPage() {
       code: project.code,
       type: project.type,
       status: project.status,
+      rera_number: project.rera_number || '',
       location: project.location || '',
       city: project.city || '',
+      state: project.state || '',
+      pincode: project.pincode || '',
+      landmark: project.landmark || '',
+      google_map_url: project.google_map_url || '',
       developer: project.developer || '',
       budget: project.budget || undefined,
       total_units: project.total_units || 0,
@@ -356,6 +375,8 @@ export default function ProjectsPage() {
       price_max: project.price_max || undefined,
       launch_date: project.launch_date || '',
       possession_date: project.possession_date || '',
+      construction_stage: project.construction_stage || '',
+      construction_pct: project.construction_pct || 0,
       description: project.description || '',
       amenities: project.amenities || [],
       manager_id: project.manager?.id,
@@ -860,6 +881,76 @@ export default function ProjectsPage() {
                 value={formData.city || ''}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Input
+                label="State"
+                placeholder="Uttar Pradesh"
+                value={formData.state || ''}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              />
+              <Input
+                label="Pincode"
+                placeholder="201301"
+                value={formData.pincode || ''}
+                onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+              />
+              <Input
+                label="Landmark"
+                placeholder="Near Sector 18 Metro"
+                value={formData.landmark || ''}
+                onChange={(e) => setFormData({ ...formData, landmark: e.target.value })}
+              />
+              <Input
+                label="RERA Number"
+                placeholder="UPRERAPRJ12345"
+                value={formData.rera_number || ''}
+                onChange={(e) => setFormData({ ...formData, rera_number: e.target.value })}
+              />
+            </div>
+
+            <Input
+              label="Google Maps URL"
+              placeholder="https://maps.google.com/..."
+              value={formData.google_map_url || ''}
+              onChange={(e) => setFormData({ ...formData, google_map_url: e.target.value })}
+            />
+
+            <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-4">
+              <span className="text-xs font-bold text-heading-charcoal block border-b border-stone-border pb-1.5">Construction Progress</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Construction Stage"
+                  value={formData.construction_stage || ''}
+                  onChange={(e) => setFormData({ ...formData, construction_stage: e.target.value })}
+                  options={[
+                    { value: '', label: 'Select stage...' },
+                    { value: 'planning', label: 'Planning' },
+                    { value: 'foundation', label: 'Foundation' },
+                    { value: 'structure', label: 'Structure' },
+                    { value: 'finishing', label: 'Finishing' },
+                    { value: 'completed', label: 'Completed' },
+                  ]}
+                />
+                <div>
+                  <label className="block text-xs font-semibold text-heading-charcoal mb-1">
+                    Completion % ({formData.construction_pct ?? 0}%)
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={formData.construction_pct ?? 0}
+                    onChange={(e) => setFormData({ ...formData, construction_pct: Number(e.target.value) })}
+                    className="w-full h-2 accent-ink-black cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-gray mt-1">
+                    <span>0%</span><span>50%</span><span>100%</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-4">

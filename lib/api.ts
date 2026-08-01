@@ -151,6 +151,12 @@ export const leadsApi = {
       lead_number?: string
       lead_name?: string
     }[]>>('/leads/check-duplicates', data),
+
+  accept: (id: number | string) =>
+    api.post<ApiSuccessResponse<ApiLead>>(`/leads/${id}/accept`),
+
+  reject: (id: number | string) =>
+    api.post<ApiSuccessResponse<{ reassigned_to: string | null }>>(`/leads/${id}/reject`),
 }
 
 // ---------------------------------------------------------------------------
@@ -316,8 +322,8 @@ export const hrmApi = {
   todayAttendance: () =>
     api.get<ApiSuccessResponse<{ has_employee_profile: boolean; employee?: ApiHREmployee; attendance: ApiAttendance | null }>>('/hrm/attendance/today'),
 
-  clockIn: (notes?: string) =>
-    api.post<ApiSuccessResponse<ApiAttendance>>('/hrm/attendance/clock-in', { notes }),
+  clockIn: (notes?: string, latitude?: number, longitude?: number) =>
+    api.post<ApiSuccessResponse<ApiAttendance>>('/hrm/attendance/clock-in', { notes, latitude, longitude }),
 
   clockOut: () =>
     api.post<ApiSuccessResponse<ApiAttendance>>('/hrm/attendance/clock-out'),
@@ -432,6 +438,10 @@ export interface ApiLead {
   project_id?: number | null
   project?: ApiProject | null
   assigned_to: { id: number; name: string; email: string } | null
+  assignment_status?: 'pending' | 'accepted' | 'rejected' | 'expired' | null
+  accepted_at?: string | null
+  sla_expires_at?: string | null
+  reassigned_from?: number | null
   is_duplicate: boolean
   follow_up_count: number
   site_visit_count: number
@@ -698,8 +708,13 @@ export interface ApiProject {
   code: string
   type: 'residential' | 'commercial' | 'mixed_use' | 'industrial' | 'plot'
   status: 'planning' | 'active' | 'under_construction' | 'completed' | 'on_hold'
+  rera_number: string | null
   location: string | null
   city: string | null
+  state: string | null
+  pincode: string | null
+  landmark: string | null
+  google_map_url: string | null
   developer: string | null
   budget: number | null
   total_units: number
@@ -709,6 +724,8 @@ export interface ApiProject {
   price_max: number | null
   launch_date: string | null
   possession_date: string | null
+  construction_stage: string | null
+  construction_pct: number
   description: string | null
   amenities: string[] | null
   manager: { id: number; name: string; email: string } | null
@@ -746,8 +763,13 @@ export interface CreateProjectPayload {
   code: string
   type: string
   status: string
+  rera_number?: string
   location?: string
   city?: string
+  state?: string
+  pincode?: string
+  landmark?: string
+  google_map_url?: string
   developer?: string
   budget?: number
   total_units?: number
@@ -757,6 +779,8 @@ export interface CreateProjectPayload {
   price_max?: number
   launch_date?: string
   possession_date?: string
+  construction_stage?: string
+  construction_pct?: number
   description?: string
   amenities?: string[]
   manager_id?: number
@@ -790,6 +814,11 @@ export interface ApiHREmployee {
   ifsc_code: string | null
   notes: string | null
   profile_image?: string | null
+  work_latitude?: number | null
+  work_longitude?: number | null
+  hra?: number | null
+  allowances?: number | null
+  deductions?: number | null
   created_at: string
   updated_at: string
 }
@@ -836,6 +865,11 @@ export interface CreateHREmployeePayload {
   account_number?: string
   ifsc_code?: string
   notes?: string
+  work_latitude?: number
+  work_longitude?: number
+  hra?: number
+  allowances?: number
+  deductions?: number
 }
 
 export interface ApiAttendance {
@@ -849,6 +883,8 @@ export interface ApiAttendance {
   work_hours: number
   status: 'present' | 'late' | 'half_day' | 'absent'
   notes: string | null
+  latitude?: number | null
+  longitude?: number | null
   created_at: string
 }
 
@@ -885,4 +921,167 @@ export interface ApiPayroll {
   payment_method: string | null
   notes: string | null
   created_at: string
+}
+
+// ---------------------------------------------------------------------------
+// Inventory Management Types
+// ---------------------------------------------------------------------------
+export interface ApiTower {
+  id: number
+  project_id: number
+  tower_name: string
+  total_floors: number
+  units_per_floor: number
+  has_lift: boolean
+  parking_details: string | null
+  units_count?: number
+  available_units_count?: number
+  created_at: string
+}
+
+export interface ApiUnit {
+  id: number
+  tower_id: number
+  project_id: number
+  unit_number: string
+  floor_number: number
+  bhk_type: string
+  carpet_area: number | null
+  built_up_area: number | null
+  super_built_up_area: number | null
+  facing: string | null
+  base_price: number | null
+  price_per_sqft: number | null
+  floor_rise_charges: number
+  plc_charges: number
+  parking_charges: number
+  club_house_charges: number
+  gst_amount: number
+  total_price: number | null
+  status: 'available' | 'reserved' | 'hold' | 'booked' | 'sold' | 'cancelled' | 'blocked'
+  tower?: { id: number; tower_name: string }
+  created_at: string
+}
+
+export interface ApiBooking {
+  id: number
+  unit_id: number
+  lead_id: number | null
+  customer_name: string
+  customer_phone: string
+  customer_email: string | null
+  assigned_to: number | null
+  booking_date: string
+  booking_amount: number
+  agreement_status: 'draft' | 'signed' | 'registered'
+  notes: string | null
+  unit?: ApiUnit
+  lead?: { id: number; lead_number: string; name: string; phone: string }
+  assignedTo?: { id: number; name: string }
+  payments?: ApiPayment[]
+  created_at: string
+}
+
+export interface ApiPayment {
+  id: number
+  booking_id: number
+  payment_type: 'booking' | 'installment' | 'final' | 'registration'
+  amount: number
+  due_date: string | null
+  paid_date: string | null
+  payment_status: 'pending' | 'paid' | 'overdue'
+  receipt_url: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface ApiProjectConfig {
+  id: number
+  project_id: number
+  bhk_type: string
+  carpet_area_min: number | null
+  carpet_area_max: number | null
+  price_from: number | null
+  price_to: number | null
+}
+
+// ---------------------------------------------------------------------------
+// Inventory API helpers
+// ---------------------------------------------------------------------------
+export const inventoryApi = {
+  // Towers
+  getTowers: (projectId: number) =>
+    api.get<ApiSuccessResponse<ApiTower[]>>(`/projects/${projectId}/towers`),
+  createTower: (projectId: number, data: Partial<ApiTower>) =>
+    api.post<ApiSuccessResponse<ApiTower>>(`/projects/${projectId}/towers`, data),
+  updateTower: (towerId: number, data: Partial<ApiTower>) =>
+    api.patch<ApiSuccessResponse<ApiTower>>(`/towers/${towerId}`, data),
+  deleteTower: (towerId: number) =>
+    api.delete(`/towers/${towerId}`),
+
+  // Units
+  getUnits: (towerId: number, params?: { status?: string; bhk_type?: string }) =>
+    api.get<ApiSuccessResponse<ApiUnit[]>>(`/towers/${towerId}/units`, { params }),
+  createUnit: (towerId: number, data: Partial<ApiUnit>) =>
+    api.post<ApiSuccessResponse<ApiUnit>>(`/towers/${towerId}/units`, data),
+  updateUnit: (unitId: number, data: Partial<ApiUnit>) =>
+    api.patch<ApiSuccessResponse<ApiUnit>>(`/units/${unitId}`, data),
+  changeUnitStatus: (unitId: number, status: ApiUnit['status']) =>
+    api.patch<ApiSuccessResponse<ApiUnit>>(`/units/${unitId}/status`, { status }),
+  deleteUnit: (unitId: number) =>
+    api.delete(`/units/${unitId}`),
+
+  // Bookings
+  getBookings: (params?: { search?: string; agreement_status?: string; limit?: number; page?: number }) =>
+    api.get<ApiSuccessResponse<ApiBooking[]>>(`/bookings`, { params }),
+  createBooking: (data: Partial<ApiBooking>) =>
+    api.post<ApiSuccessResponse<ApiBooking>>(`/bookings`, data),
+  getBooking: (id: number) =>
+    api.get<ApiSuccessResponse<ApiBooking>>(`/bookings/${id}`),
+  updateBooking: (id: number, data: Partial<ApiBooking>) =>
+    api.patch<ApiSuccessResponse<ApiBooking>>(`/bookings/${id}`, data),
+
+  // Payments
+  getPayments: (bookingId: number) =>
+    api.get<{ success: boolean; data: ApiPayment[]; summary: { total_due: number; total_paid: number; pending: number; overdue: number } }>(`/bookings/${bookingId}/payments`),
+  createPayment: (bookingId: number, data: Partial<ApiPayment>) =>
+    api.post<ApiSuccessResponse<ApiPayment>>(`/bookings/${bookingId}/payments`, data),
+  updatePayment: (paymentId: number, data: Partial<ApiPayment>) =>
+    api.patch<ApiSuccessResponse<ApiPayment>>(`/payments/${paymentId}`, data),
+
+  // Project Configurations
+  getConfigurations: (projectId: number) =>
+    api.get<ApiSuccessResponse<ApiProjectConfig[]>>(`/projects/${projectId}/configurations`),
+  createConfiguration: (projectId: number, data: Partial<ApiProjectConfig>) =>
+    api.post<ApiSuccessResponse<ApiProjectConfig>>(`/projects/${projectId}/configurations`, data),
+  updateConfiguration: (projectId: number, configId: number, data: Partial<ApiProjectConfig>) =>
+    api.patch<ApiSuccessResponse<ApiProjectConfig>>(`/projects/${projectId}/configurations/${configId}`, data),
+  deleteConfiguration: (projectId: number, configId: number) =>
+    api.delete(`/projects/${projectId}/configurations/${configId}`),
+}
+
+// ---------------------------------------------------------------------------
+// Reports & Analytics API
+// ---------------------------------------------------------------------------
+export const reportsApi = {
+  leads: (params?: { start_date?: string; end_date?: string }) =>
+    api.get<ApiSuccessResponse<{ daily_ingestion: any[]; source_effectiveness: any[] }>>('/reports/leads', { params }),
+
+  sales: (params?: { start_date?: string; end_date?: string }) =>
+    api.get<ApiSuccessResponse<{ revenue_by_project: any[]; avg_cycle_days: number }>>('/reports/sales', { params }),
+
+  employees: () =>
+    api.get<ApiSuccessResponse<any[]>>('/reports/employees'),
+
+  projects: () =>
+    api.get<ApiSuccessResponse<any[]>>('/reports/projects'),
+
+  inventory: () =>
+    api.get<ApiSuccessResponse<{ summary: any; projects: any[] }>>('/reports/inventory'),
+
+  marketing: () =>
+    api.get<ApiSuccessResponse<any[]>>('/reports/marketing'),
+
+  sla: () =>
+    api.get<ApiSuccessResponse<any[]>>('/reports/sla'),
 }

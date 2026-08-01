@@ -108,6 +108,9 @@ export default function HRPage() {
     account_number: '',
     ifsc_code: '',
     notes: '',
+    hra: undefined,
+    allowances: undefined,
+    deductions: undefined,
   })
   const [submittingEmp, setSubmittingEmp] = useState(false)
   const [uploadingEmpImage, setUploadingEmpImage] = useState(false)
@@ -292,16 +295,36 @@ export default function HRPage() {
 
   // Clock In / Clock Out Handlers
   const handleClockIn = async () => {
-    try {
-      const res = await hrmApi.clockIn('Clocked in from Web App')
-      if (res.data?.success) {
-        addToast('Clocked in successfully!', 'success')
-        fetchTodayAttendance()
-        if (activeTab === 'attendance') fetchAttendances()
-      }
-    } catch (err: any) {
-      addToast(err.response?.data?.message || 'Failed to clock in.', 'error')
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      addToast('Geolocation is not supported by your browser.', 'error')
+      return
     }
+
+    addToast('Retrieving GPS coordinates...', 'info')
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords
+          const res = await hrmApi.clockIn('Clocked in from Web App', latitude, longitude)
+          if (res.data?.success) {
+            addToast('Clocked in successfully!', 'success')
+            fetchTodayAttendance()
+            if (activeTab === 'attendance') fetchAttendances()
+          }
+        } catch (err: any) {
+          addToast(err.response?.data?.message || 'Failed to clock in.', 'error')
+        }
+      },
+      (error) => {
+        let msg = 'Failed to retrieve your location for clock-in verification.'
+        if (error.code === error.PERMISSION_DENIED) {
+          msg = 'Location access was denied. You must enable location permissions to clock in.'
+        }
+        addToast(msg, 'error')
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    )
   }
 
   const handleClockOut = async () => {
@@ -340,6 +363,11 @@ export default function HRPage() {
       account_number: '',
       ifsc_code: '',
       notes: '',
+      work_latitude: undefined,
+      work_longitude: undefined,
+      hra: undefined,
+      allowances: undefined,
+      deductions: undefined,
     })
     setIsCreateEmpOpen(true)
   }
@@ -368,6 +396,11 @@ export default function HRPage() {
       ifsc_code: emp.ifsc_code || '',
       notes: emp.notes || '',
       user_id: emp.user_id || undefined,
+      work_latitude: emp.work_latitude || undefined,
+      work_longitude: emp.work_longitude || undefined,
+      hra: emp.hra !== null ? emp.hra : undefined,
+      allowances: emp.allowances !== null ? emp.allowances : undefined,
+      deductions: emp.deductions !== null ? emp.deductions : undefined,
     })
     setIsEditEmpOpen(true)
   }
@@ -488,7 +521,25 @@ export default function HRPage() {
     }),
     attendanceColumnHelper.accessor('clock_in', {
       header: 'Clock In',
-      cell: (info) => <span className="font-bold text-grass-green">{info.getValue() || '--:--'}</span>
+      cell: ({ row }) => {
+        const att = row.original
+        return (
+          <div className="flex flex-col">
+            <span className="font-bold text-grass-green">{att.clock_in || '--:--'}</span>
+            {att.latitude && att.longitude && (
+              <a
+                href={`https://www.google.com/maps?q=${att.latitude},${att.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] text-[#E67E22] hover:underline mt-0.5 font-bold flex items-center gap-0.5"
+                title="GPS Coordinates Verified"
+              >
+                📍 GPS Pin
+              </a>
+            )}
+          </div>
+        )
+      }
     }),
     attendanceColumnHelper.accessor('clock_out', {
       header: 'Clock Out',
@@ -1196,6 +1247,30 @@ export default function HRPage() {
                   onChange={(e) => setEmpFormData({ ...empFormData, aadhar_number: e.target.value })}
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-dashed border-stone-border/40">
+                <Input
+                  label="Custom HRA (₹) - Optional"
+                  type="number"
+                  placeholder="Defaults to 20%"
+                  value={empFormData.hra ?? ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, hra: e.target.value ? parseFloat(e.target.value) : undefined })}
+                />
+                <Input
+                  label="Custom Allowances (₹) - Optional"
+                  type="number"
+                  placeholder="Defaults to 10%"
+                  value={empFormData.allowances ?? ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, allowances: e.target.value ? parseFloat(e.target.value) : undefined })}
+                />
+                <Input
+                  label="Custom Deductions (₹) - Optional"
+                  type="number"
+                  placeholder="Defaults to 5%"
+                  value={empFormData.deductions ?? ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, deductions: e.target.value ? parseFloat(e.target.value) : undefined })}
+                />
+              </div>
             </div>
 
             <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-4">
@@ -1218,6 +1293,28 @@ export default function HRPage() {
                   placeholder="HDFC0001234"
                   value={empFormData.ifsc_code || ''}
                   onChange={(e) => setEmpFormData({ ...empFormData, ifsc_code: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-4">
+              <span className="text-xs font-bold text-heading-charcoal block border-b border-stone-border pb-1.5">Work Location Geofence (GPS Coordinates)</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  label="Authorized Work Latitude"
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 23.022500"
+                  value={empFormData.work_latitude ?? ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, work_latitude: e.target.value ? parseFloat(e.target.value) : undefined })}
+                />
+                <Input
+                  label="Authorized Work Longitude"
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 72.571400"
+                  value={empFormData.work_longitude ?? ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, work_longitude: e.target.value ? parseFloat(e.target.value) : undefined })}
                 />
               </div>
             </div>
@@ -1478,7 +1575,16 @@ export default function HRPage() {
                 <div><span className="text-muted-gray text-[9px] uppercase font-bold">Type</span><p className="font-bold text-heading-charcoal mt-0.5 capitalize">{detailEmp.employment_type.replace('_', ' ')}</p></div>
                 <div><span className="text-muted-gray text-[9px] uppercase font-bold">Joined</span><p className="font-bold text-heading-charcoal mt-0.5">{detailEmp.joining_date}</p></div>
                 {(isAdminOrHr || detailEmp.email === currentUser?.email || detailEmp.user_id === currentUser?.id) && (
-                  <div><span className="text-muted-gray text-[9px] uppercase font-bold">Salary</span><p className="font-bold text-heading-charcoal mt-0.5">{formatCurrency(detailEmp.salary)}/mo</p></div>
+                  <div><span className="text-muted-gray text-[9px] uppercase font-bold">Base Salary</span><p className="font-bold text-heading-charcoal mt-0.5">{formatCurrency(detailEmp.salary)}/mo</p></div>
+                )}
+                {(isAdminOrHr || detailEmp.email === currentUser?.email || detailEmp.user_id === currentUser?.id) && detailEmp.hra !== null && detailEmp.hra !== undefined && (
+                  <div><span className="text-muted-gray text-[9px] uppercase font-bold">Custom HRA</span><p className="font-bold text-heading-charcoal mt-0.5">{formatCurrency(detailEmp.hra)}/mo</p></div>
+                )}
+                {(isAdminOrHr || detailEmp.email === currentUser?.email || detailEmp.user_id === currentUser?.id) && detailEmp.allowances !== null && detailEmp.allowances !== undefined && (
+                  <div><span className="text-muted-gray text-[9px] uppercase font-bold">Custom Allowances</span><p className="font-bold text-heading-charcoal mt-0.5">{formatCurrency(detailEmp.allowances)}/mo</p></div>
+                )}
+                {(isAdminOrHr || detailEmp.email === currentUser?.email || detailEmp.user_id === currentUser?.id) && detailEmp.deductions !== null && detailEmp.deductions !== undefined && (
+                  <div><span className="text-muted-gray text-[9px] uppercase font-bold">Custom Deductions</span><p className="font-bold text-heading-charcoal mt-0.5">{formatCurrency(detailEmp.deductions)}/mo</p></div>
                 )}
               </div>
 

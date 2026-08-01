@@ -20,6 +20,8 @@ import {
   Shield,
   FolderKanban,
   UserCheck,
+  Warehouse,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -45,6 +47,8 @@ export function AppSidebar() {
       items: [
         access.dashboard && { label: 'Dashboard', icon: LayoutDashboard, href: '/' },
         (access.projects ?? true) && { label: 'Projects', icon: FolderKanban, href: '/projects' },
+        (access.projects ?? true) && { label: 'Inventory', icon: Warehouse, href: '/inventory' },
+        (access.projects ?? true) && { label: 'Bookings', icon: BookOpen, href: '/bookings' },
         access.leads && { label: 'Leads', icon: Users, href: '/leads' },
         access.follow_ups && { label: 'Follow-ups', icon: Phone, href: '/follow-ups' },
         access.site_visits && { label: 'Site Visits', icon: Building2, href: '/site-visits' },
@@ -62,7 +66,7 @@ export function AppSidebar() {
         access.import_leads && { label: 'Import', icon: Import, href: '/import' },
         access.activity_log && { label: 'Activity', icon: ScrollText, href: '/activity' },
         { label: 'Calendar', icon: CalendarCheck, href: '/calendar' },
-        access.users && { label: 'Reports', icon: BarChart3, href: '/reports' },
+        (isAdminOrHr || access.users) && { label: 'Reports', icon: BarChart3, href: '/reports' },
       ].filter(Boolean),
     },
     {

@@ -9,9 +9,10 @@ import { LeadStatusBadge, LeadSourceBadge, LeadScore } from '@/components/leads/
 import { AddLeadModal } from '@/components/leads/AddLeadModal'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useToastStore } from '@/store/useToastStore'
 import { Skeleton } from '@/components/ui/skeleton'
 import { dashboardApi, leadsApi, usersApi, activityApi } from '@/lib/api'
-import type { AdminStats, EmployeeStats, TodayScheduleItem, TeamMemberStat } from '@/lib/api'
+import type { AdminStats, EmployeeStats, TodayScheduleItem, TeamMemberStat, ApiLead } from '@/lib/api'
 import { LEAD_SOURCE_LABELS } from '@/lib/constants'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import {
@@ -96,6 +97,44 @@ function SkeletonCard() {
   )
 }
 
+function SlaCountdown({ expiresAt }: { expiresAt: string }) {
+  const [timeLeft, setTimeLeft] = React.useState('')
+  const [isExpired, setIsExpired] = React.useState(false)
+
+  React.useEffect(() => {
+    const calculateTime = () => {
+      const difference = +new Date(expiresAt) - +new Date()
+      if (difference <= 0) {
+        setTimeLeft('00:00')
+        setIsExpired(true)
+        return
+      }
+
+      const mins = Math.floor((difference / 1000 / 60) % 60)
+      const secs = Math.floor((difference / 1000) % 60)
+      
+      const formattedMins = String(mins).padStart(2, '0')
+      const formattedSecs = String(secs).padStart(2, '0')
+      
+      setTimeLeft(`${formattedMins}:${formattedSecs}`)
+    }
+
+    calculateTime()
+    const interval = setInterval(calculateTime, 1000)
+    return () => clearInterval(interval)
+  }, [expiresAt])
+
+  if (isExpired) {
+    return <span className="text-[10px] font-bold text-alert-red animate-pulse">SLA BREACHED / REASSIGNING</span>
+  }
+
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700 font-mono">
+      SLA Timer: {timeLeft}
+    </span>
+  )
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -117,6 +156,46 @@ export default function DashboardPage() {
   const { data: recentLeadsData } = useQuery({
     queryKey: ['leads', 'recent'],
     queryFn: () => leadsApi.list({ limit: 6, sort_by: 'created_at', sort_dir: 'desc' }).then((r) => r.data),
+  })
+
+  // Pending Leads acceptance queue for clocked-in employee
+  const { data: pendingLeadsData, refetch: refetchPendingLeads } = useQuery<ApiLead[]>({
+    queryKey: ['leads', 'pending-acceptance'],
+    queryFn: () => leadsApi.list({ tab: 'my', limit: 20 }).then((r) => {
+      return r.data.data?.filter((l: ApiLead) => l.assignment_status === 'pending') ?? []
+    }),
+    enabled: !isAdmin,
+    refetchInterval: 10000, // Poll every 10 seconds
+  })
+  const pendingLeads = pendingLeadsData ?? []
+
+  const acceptMutation = useMutation({
+    mutationFn: (leadId: number) => leadsApi.accept(leadId),
+    onSuccess: () => {
+      useToastStore.getState().addToast('Lead assignment accepted successfully.', 'success')
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      refetchPendingLeads()
+    },
+    onError: (err: any) => {
+      useToastStore.getState().addToast(err?.response?.data?.message || 'Failed to accept lead.', 'error')
+    }
+  })
+
+  const rejectMutation = useMutation({
+    mutationFn: (leadId: number) => leadsApi.reject(leadId),
+    onSuccess: (res) => {
+      const msg = res.data?.data?.reassigned_to 
+        ? `Lead rejected. Reassigned to ${res.data.data.reassigned_to}.`
+        : 'Lead rejected and returned to unassigned queue.'
+      useToastStore.getState().addToast(msg, 'success')
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      refetchPendingLeads()
+    },
+    onError: (err: any) => {
+      useToastStore.getState().addToast(err?.response?.data?.message || 'Failed to reject lead.', 'error')
+    }
   })
 
   // Superadmin telemetry query
@@ -622,6 +701,52 @@ export default function DashboardPage() {
                               <option key={emp.id} value={emp.id}>{emp.name}</option>
                             ))}
                           </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Pending Leads Acceptance Queue for Agents */}
+              {!isAdmin && pendingLeads.length > 0 && (
+                <section className="bg-white rounded-cards p-6 border border-alert-red/30 shadow-sm bg-gradient-to-r from-red-50/20 to-amber-50/10 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-alert-red animate-ping" />
+                    <h2 className="font-family-display text-lg text-heading-charcoal tracking-tight">Pending Lead Assignments</h2>
+                  </div>
+                  <p className="text-xs text-body-brown">
+                    You have lead assignments awaiting your acceptance. They must be accepted within 15 minutes, or they will automatically re-route to another agent.
+                  </p>
+                  <div className="space-y-3">
+                    {pendingLeads.map((lead) => (
+                      <div key={lead.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-white border border-stone-surface hover:border-stone-border rounded-cards transition-all">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-sm text-heading-charcoal">{lead.name}</span>
+                            <span className="text-[9px] px-1.5 py-0.25 rounded bg-stone-surface border border-stone-border font-bold uppercase">{lead.source}</span>
+                            {lead.sla_expires_at && <SlaCountdown expiresAt={lead.sla_expires_at} />}
+                          </div>
+                          <p className="text-xs text-body-brown">
+                            {lead.phone} · Interest: <span className="font-bold text-heading-charcoal">{lead.project_interest || lead.property_type || 'General'}</span>
+                            {lead.budget_max ? ` · Budget: ${formatCurrency(lead.budget_max)}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => acceptMutation.mutate(lead.id)}
+                            disabled={acceptMutation.isPending || rejectMutation.isPending}
+                            className="bg-grass-green text-white hover:opacity-90 px-3.5 py-1.5 rounded-buttons text-xs font-bold transition-all flex items-center gap-1"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => rejectMutation.mutate(lead.id)}
+                            disabled={acceptMutation.isPending || rejectMutation.isPending}
+                            className="bg-white text-alert-red border border-alert-red hover:bg-red-50/50 px-3.5 py-1.5 rounded-buttons text-xs font-bold transition-all"
+                          >
+                            Reject
+                          </button>
                         </div>
                       </div>
                     ))}
