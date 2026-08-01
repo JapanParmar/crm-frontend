@@ -1573,6 +1573,8 @@ export default function HRPage() {
               <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 grid grid-cols-2 gap-3.5">
                 <div><span className="text-muted-gray text-[9px] uppercase font-bold">Emp Code</span><p className="font-bold text-heading-charcoal mt-0.5">{detailEmp.employee_code}</p></div>
                 <div><span className="text-muted-gray text-[9px] uppercase font-bold">Type</span><p className="font-bold text-heading-charcoal mt-0.5 capitalize">{detailEmp.employment_type.replace('_', ' ')}</p></div>
+                <div><span className="text-muted-gray text-[9px] uppercase font-bold">Department</span><p className="font-bold text-heading-charcoal mt-0.5">{detailEmp.department || 'N/A'}</p></div>
+                <div><span className="text-muted-gray text-[9px] uppercase font-bold">Designation</span><p className="font-bold text-heading-charcoal mt-0.5">{detailEmp.designation || 'N/A'}</p></div>
                 <div><span className="text-muted-gray text-[9px] uppercase font-bold">Joined</span><p className="font-bold text-heading-charcoal mt-0.5">{detailEmp.joining_date}</p></div>
                 {(isAdminOrHr || detailEmp.email === currentUser?.email || detailEmp.user_id === currentUser?.id) && (
                   <div><span className="text-muted-gray text-[9px] uppercase font-bold">Base Salary</span><p className="font-bold text-heading-charcoal mt-0.5">{formatCurrency(detailEmp.salary)}/mo</p></div>
@@ -1595,12 +1597,35 @@ export default function HRPage() {
                 {detailEmp.address && <p className="font-medium"><span className="text-body-brown font-semibold">Address:</span> {detailEmp.address}</p>}
               </div>
 
+              {(isAdminOrHr || detailEmp.email === currentUser?.email || detailEmp.user_id === currentUser?.id) && (detailEmp.pan_number || detailEmp.aadhar_number) && (
+                <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-2">
+                  <span className="text-muted-gray text-[9px] uppercase font-bold block border-b border-stone-border pb-1">Confidential Identifiers</span>
+                  <p className="font-medium"><span className="text-body-brown font-semibold">PAN Card:</span> {detailEmp.pan_number || 'N/A'}</p>
+                  <p className="font-medium"><span className="text-body-brown font-semibold">Aadhar Card:</span> {detailEmp.aadhar_number || 'N/A'}</p>
+                </div>
+              )}
+
+              {detailEmp.emergency_contact_name && (
+                <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-2">
+                  <span className="text-muted-gray text-[9px] uppercase font-bold block border-b border-stone-border pb-1">Emergency Contact</span>
+                  <p className="font-medium"><span className="text-body-brown font-semibold">Contact Person:</span> {detailEmp.emergency_contact_name}</p>
+                  <p className="font-medium"><span className="text-body-brown font-semibold">Contact Phone:</span> {detailEmp.emergency_contact_phone || 'N/A'}</p>
+                </div>
+              )}
+
               {(isAdminOrHr || detailEmp.email === currentUser?.email || detailEmp.user_id === currentUser?.id) && (detailEmp.bank_name || detailEmp.account_number) && (
                 <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-2">
                   <span className="text-muted-gray text-[9px] uppercase font-bold block border-b border-stone-border pb-1">Bank Details</span>
                   <p className="font-medium"><span className="text-body-brown font-semibold">Bank:</span> {detailEmp.bank_name || 'N/A'}</p>
                   <p className="font-medium"><span className="text-body-brown font-semibold">Account #:</span> {detailEmp.account_number || 'N/A'}</p>
                   <p className="font-medium"><span className="text-body-brown font-semibold">IFSC:</span> {detailEmp.ifsc_code || 'N/A'}</p>
+                </div>
+              )}
+
+              {detailEmp.notes && (
+                <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-2">
+                  <span className="text-muted-gray text-[9px] uppercase font-bold block border-b border-stone-border pb-1">Admin / HR Notes</span>
+                  <p className="italic text-body-brown">{detailEmp.notes}</p>
                 </div>
               )}
             </div>

@@ -460,21 +460,51 @@ export default function BookingsPage() {
       <Modal open={!!viewBooking} onClose={() => setViewBooking(null)} title={`Booking — ${viewBooking?.customer_name ?? ''}`} size="lg">
         {viewBooking && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Customer info */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: '#f9fafb', borderRadius: 8, padding: 14 }}>
-              <div><span style={{ fontSize: 11, color: '#9ca3af' }}>Name</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.customer_name}</p></div>
-              <div><span style={{ fontSize: 11, color: '#9ca3af' }}>Phone</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.customer_phone}</p></div>
-              <div><span style={{ fontSize: 11, color: '#9ca3af' }}>Booking Date</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.booking_date}</p></div>
-              <div><span style={{ fontSize: 11, color: '#9ca3af' }}>Booking Amount</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{fmt(viewBooking.booking_amount)}</p></div>
-              <div>
-                <span style={{ fontSize: 11, color: '#9ca3af' }}>Agreement</span>
-                <p style={{ margin: '2px 0 0' }}>
-                  <span style={{ background: (AGR_COLORS[viewBooking.agreement_status] ?? '#9ca3af') + '22', color: AGR_COLORS[viewBooking.agreement_status], borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
-                    {viewBooking.agreement_status}
-                  </span>
-                </p>
+            {/* Customer & Unit Metadata */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {/* Customer Column */}
+              <div style={{ background: '#f9fafb', borderRadius: 8, padding: 14, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, borderBottom: '1px solid #e5e7eb', paddingBottom: 4, marginBottom: 4 }}>Customer Profile</span>
+                <div><span style={{ fontSize: 10, color: '#6b7280' }}>Name:</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0', color: '#1a1a1a' }}>{viewBooking.customer_name}</p></div>
+                <div><span style={{ fontSize: 10, color: '#6b7280' }}>Phone:</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0', color: '#1a1a1a' }}>{viewBooking.customer_phone}</p></div>
+                <div><span style={{ fontSize: 10, color: '#6b7280' }}>Email:</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0', color: '#1a1a1a' }}>{viewBooking.customer_email || 'N/A'}</p></div>
+                {viewBooking.lead && (
+                  <div style={{ borderTop: '1px dashed #e5e7eb', paddingTop: 6, marginTop: 4 }}><span style={{ fontSize: 10, color: '#6b7280' }}>Linked Lead:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.lead.name} ({viewBooking.lead.lead_number})</p></div>
+                )}
+              </div>
+
+              {/* Unit Specifications & Booking details */}
+              <div style={{ background: '#f9fafb', borderRadius: 8, padding: 14, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, borderBottom: '1px solid #e5e7eb', paddingBottom: 4, marginBottom: 4 }}>Unit & Booking Details</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Project:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{(viewBooking.unit as any)?.tower?.project?.name || 'N/A'}</p></div>
+                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Tower:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{(viewBooking.unit as any)?.tower?.tower_name || 'N/A'}</p></div>
+                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Unit Number:</span><p style={{ fontSize: 12, fontWeight: 700, margin: '2px 0 0', color: '#6366f1' }}>{viewBooking.unit?.unit_number || 'N/A'} ({viewBooking.unit?.bhk_type})</p></div>
+                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Floor:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.unit?.floor_number === 0 ? 'Ground' : `Floor ${viewBooking.unit?.floor_number}`}</p></div>
+                </div>
+                <div style={{ borderTop: '1px dashed #e5e7eb', paddingTop: 6, marginTop: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Booking Date:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.booking_date}</p></div>
+                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Booking Amount:</span><p style={{ fontSize: 12, fontWeight: 700, margin: '2px 0 0', color: '#1a1a1a' }}>{fmt(viewBooking.booking_amount)}</p></div>
+                  <div>
+                    <span style={{ fontSize: 10, color: '#6b7280' }}>Agreement:</span>
+                    <div style={{ marginTop: 2 }}>
+                      <span style={{ background: (AGR_COLORS[viewBooking.agreement_status] ?? '#9ca3af') + '22', color: AGR_COLORS[viewBooking.agreement_status], borderRadius: 4, padding: '2px 8px', fontSize: 10, fontWeight: 700, textTransform: 'capitalize' }}>
+                        {viewBooking.agreement_status}
+                      </span>
+                    </div>
+                  </div>
+                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Representative:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.assignedTo?.name || 'Unassigned'}</p></div>
+                </div>
               </div>
             </div>
+
+            {/* Notes / Special Requests */}
+            {viewBooking.notes && (
+              <div style={{ background: '#fefdfc', borderRadius: 8, padding: 12, border: '1px solid #fed7aa' }}>
+                <span style={{ fontSize: 10, color: '#c2410c', textTransform: 'uppercase', fontWeight: 700 }}>Notes / Special Requests</span>
+                <p style={{ fontSize: 12, color: '#431407', margin: '4px 0 0', lineHeight: 1.4 }}>{viewBooking.notes}</p>
+              </div>
+            )}
 
             {/* Payment summary */}
             {paymentSummary && (
