@@ -13,8 +13,8 @@ import { Input, Select } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { useToastStore } from '@/store/useToastStore'
 import {
-  inventoryApi, projectsApi,
-  ApiTower, ApiUnit, ApiProject,
+  inventoryApi, projectsApi, leadsApi, usersApi,
+  ApiTower, ApiUnit, ApiProject, ApiLead, ApiEmployee
 } from '@/lib/api'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -90,6 +90,23 @@ export default function InventoryPage() {
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [statusUnit, setStatusUnit] = useState<ApiUnit | null>(null)
   const [newStatus, setNewStatus] = useState<string>('')
+
+  // Booking details from unit click
+  const [showBookingModal, setShowBookingModal] = useState(false)
+  const [leadsList, setLeadsList] = useState<ApiLead[]>([])
+  const [employeesList, setEmployeesList] = useState<ApiEmployee[]>([])
+  const [savingBooking, setSavingBooking] = useState(false)
+  const [bookingForm, setBookingForm] = useState({
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    booking_date: new Date().toISOString().split('T')[0],
+    booking_amount: '',
+    agreement_status: 'draft' as 'draft' | 'signed' | 'registered',
+    notes: '',
+    lead_id: '',
+    assigned_to: '',
+  })
 
   // ── load projects ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -205,6 +222,92 @@ export default function InventoryPage() {
     } catch {}
   }
 
+  // ── Start unit booking process ──────────────────────────────────────────────
+  const startUnitBooking = async () => {
+    if (!statusUnit) return
+    setShowStatusModal(false)
+    setBookingForm({
+      customer_name: '',
+      customer_phone: '',
+      customer_email: '',
+      booking_date: new Date().toISOString().split('T')[0],
+      booking_amount: statusUnit.total_price ? String(statusUnit.total_price) : (statusUnit.base_price ? String(statusUnit.base_price) : ''),
+      agreement_status: 'draft',
+      notes: '',
+      lead_id: '',
+      assigned_to: '',
+    })
+
+    try {
+      const lRes = await leadsApi.list({ limit: 150 })
+      setLeadsList(lRes.data.data)
+    } catch {}
+
+    try {
+      const eRes = await usersApi.employees()
+      setEmployeesList(eRes.data.data)
+    } catch {}
+
+    setShowBookingModal(true)
+  }
+
+  const handleLeadChange = (ldIdStr: string) => {
+    const ldId = ldIdStr ? Number(ldIdStr) : undefined
+    const selectedLead = leadsList.find(l => l.id === ldId)
+    if (selectedLead) {
+      setBookingForm(f => ({
+        ...f,
+        lead_id: ldIdStr,
+        customer_name: selectedLead.name,
+        customer_phone: selectedLead.phone,
+        customer_email: selectedLead.email ?? '',
+      }))
+    } else {
+      setBookingForm(f => ({ ...f, lead_id: ldIdStr }))
+    }
+  }
+
+  const saveUnitBooking = async () => {
+    if (!statusUnit) return
+    if (!bookingForm.customer_name) {
+      addToast('Customer name is required.', 'error')
+      return
+    }
+    if (!bookingForm.customer_phone) {
+      addToast('Customer phone is required.', 'error')
+      return
+    }
+    if (!bookingForm.booking_amount || Number(bookingForm.booking_amount) <= 0) {
+      addToast('Please enter a valid booking amount.', 'error')
+      return
+    }
+
+    setSavingBooking(true)
+    try {
+      const payload = {
+        unit_id: statusUnit.id,
+        lead_id: bookingForm.lead_id ? Number(bookingForm.lead_id) : undefined,
+        customer_name: bookingForm.customer_name,
+        customer_phone: bookingForm.customer_phone,
+        customer_email: bookingForm.customer_email || undefined,
+        assigned_to: bookingForm.assigned_to ? Number(bookingForm.assigned_to) : undefined,
+        booking_date: bookingForm.booking_date,
+        booking_amount: Number(bookingForm.booking_amount),
+        agreement_status: bookingForm.agreement_status,
+        notes: bookingForm.notes || undefined,
+      }
+
+      await inventoryApi.createBooking(payload)
+      addToast('Unit booked successfully!', 'success')
+      setShowBookingModal(false)
+      if (selectedTower) loadUnits(selectedTower)
+    } catch (err: any) {
+      addToast(err.response?.data?.message || 'Failed to book unit.', 'error')
+    } finally {
+      setSavingBooking(false)
+    }
+  }
+
   // ── Summary counts ─────────────────────────────────────────────────────────
   const summary = UNIT_STATUSES.reduce((acc, s) => {
     acc[s] = units.filter(u => u.status === s).length
@@ -221,11 +324,8 @@ export default function InventoryPage() {
   return (
     <AppShell>
       <AppHeader title="Inventory Management" subtitle="Tower → Floor → Unit live availability" />
-      <div style={{ padding: '24px 28px' }}>
-        <PageHeader
-          title="Inventory Management"
-          description="Tower → Floor → Unit live availability"
-        />
+      <main className="flex flex-col h-full bg-cream-canvas relative" style={{ paddingTop: '56px' }}>
+        <div style={{ padding: '24px 28px' }}>
 
         {/* Project selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -346,7 +446,7 @@ export default function InventoryPage() {
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1 }}>
                           {unitsByFloor(floor).length === 0 ? (
-                            <div style={{ fontSize: 11, color: '#d1d5db', padding: '6px 0' }}>—</div>
+                             <div style={{ fontSize: 11, color: '#d1d5db', padding: '6px 0' }}>—</div>
                           ) : (
                             unitsByFloor(floor).map(u => (
                               <UnitCard key={u.id} unit={u} onStatusChange={openStatusModal} onEdit={openEditUnit} />
@@ -443,15 +543,126 @@ export default function InventoryPage() {
             <Select id="change-status-select" label="New Status" value={newStatus} onChange={e => setNewStatus(e.target.value)}>
               {UNIT_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
             </Select>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <Button variant="outline" size="sm" onClick={() => setShowStatusModal(false)}>Cancel</Button>
-              <Button id="apply-status-btn" size="sm" onClick={applyStatusChange}>Apply</Button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              {['available', 'reserved', 'hold'].includes(statusUnit.status) && (
+                <Button id="book-unit-from-status-btn" size="sm" variant="outline" onClick={startUnitBooking}>
+                  <BookOpen style={{ width: 13, height: 13, marginRight: 4 }} /> Book Unit
+                </Button>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+                <Button variant="outline" size="sm" onClick={() => setShowStatusModal(false)}>Cancel</Button>
+                <Button id="apply-status-btn" size="sm" onClick={applyStatusChange}>Apply</Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Booking Modal (from Unit Selection) ── */}
+      <Modal open={showBookingModal} onClose={() => setShowBookingModal(false)} title={`Book Unit: ${statusUnit?.unit_number ?? ''}`} size="lg">
+        {statusUnit && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ background: '#f9fafb', borderRadius: 8, padding: 14, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <div><span style={{ fontSize: 10, color: '#9ca3af' }}>Unit</span><p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>{statusUnit.unit_number} ({statusUnit.bhk_type})</p></div>
+              <div><span style={{ fontSize: 10, color: '#9ca3af' }}>Floor</span><p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>Floor {statusUnit.floor_number}</p></div>
+              <div><span style={{ fontSize: 10, color: '#9ca3af' }}>Project / Tower</span><p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>{selectedTower?.tower_name}</p></div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Select
+                id="inv-booking-lead"
+                label="Link Lead (Optional)"
+                value={bookingForm.lead_id}
+                onChange={e => handleLeadChange(e.target.value)}
+              >
+                <option value="">Select lead to link details...</option>
+                {leadsList.map(l => (
+                  <option key={l.id} value={l.id}>{l.name} ({l.phone})</option>
+                ))}
+              </Select>
+
+              <Select
+                id="inv-booking-rep"
+                label="Assigned Representative"
+                value={bookingForm.assigned_to}
+                onChange={e => setBookingForm(f => ({ ...f, assigned_to: e.target.value }))}
+              >
+                <option value="">Select representative...</option>
+                {employeesList.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.name}</option>
+                ))}
+              </Select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <Input
+                id="inv-booking-customer-name"
+                label="Customer Name *"
+                value={bookingForm.customer_name}
+                onChange={e => setBookingForm(f => ({ ...f, customer_name: e.target.value }))}
+              />
+              <Input
+                id="inv-booking-customer-phone"
+                label="Customer Phone *"
+                value={bookingForm.customer_phone}
+                onChange={e => setBookingForm(f => ({ ...f, customer_phone: e.target.value }))}
+              />
+              <Input
+                id="inv-booking-customer-email"
+                label="Customer Email"
+                type="email"
+                value={bookingForm.customer_email}
+                onChange={e => setBookingForm(f => ({ ...f, customer_email: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <Input
+                id="inv-booking-amount"
+                label="Booking Amount (₹) *"
+                type="number"
+                min={0}
+                value={bookingForm.booking_amount}
+                onChange={e => setBookingForm(f => ({ ...f, booking_amount: e.target.value }))}
+              />
+              <Input
+                id="inv-booking-date"
+                label="Booking Date *"
+                type="date"
+                value={bookingForm.booking_date}
+                onChange={e => setBookingForm(f => ({ ...f, booking_date: e.target.value }))}
+              />
+              <Select
+                id="inv-booking-agreement"
+                label="Agreement Status"
+                value={bookingForm.agreement_status}
+                onChange={e => setBookingForm(f => ({ ...f, agreement_status: e.target.value as any }))}
+              >
+                <option value="draft">Draft</option>
+                <option value="signed">Signed</option>
+                <option value="registered">Registered</option>
+              </Select>
+            </div>
+
+            <Input
+              id="inv-booking-notes"
+              label="Notes"
+              value={bookingForm.notes}
+              onChange={e => setBookingForm(f => ({ ...f, notes: e.target.value }))}
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+              <Button variant="outline" size="sm" onClick={() => setShowBookingModal(false)}>Cancel</Button>
+              <Button id="save-inv-booking-btn" size="sm" onClick={saveUnitBooking} disabled={savingBooking}>
+                {savingBooking ? 'Saving...' : 'Book Unit'}
+              </Button>
             </div>
           </div>
         )}
       </Modal>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </main>
     </AppShell>
   )
 }

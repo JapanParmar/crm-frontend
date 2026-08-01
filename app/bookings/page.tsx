@@ -11,7 +11,10 @@ import { Button } from '@/components/ui/button'
 import { Input, Select } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { useToastStore } from '@/store/useToastStore'
-import { inventoryApi, ApiBooking, ApiPayment, projectsApi, ApiProject } from '@/lib/api'
+import {
+  inventoryApi, ApiBooking, ApiPayment, projectsApi, ApiProject,
+  leadsApi, ApiLead, usersApi, ApiEmployee, ApiUnit, ApiTower
+} from '@/lib/api'
 
 const AGR_COLORS: Record<string, string> = { draft: '#f59e0b', signed: '#3b82f6', registered: '#22c55e' }
 const PAY_STATUS_COLORS: Record<string, string> = { pending: '#f59e0b', paid: '#22c55e', overdue: '#ef4444' }
@@ -29,6 +32,7 @@ export default function BookingsPage() {
   const [search, setSearch] = useState('')
   const [agreementFilter, setAgreementFilter] = useState('')
 
+  // Detail view states
   const [viewBooking, setViewBooking] = useState<ApiBooking | null>(null)
   const [payments, setPayments] = useState<ApiPayment[]>([])
   const [paymentSummary, setPaymentSummary] = useState<{ total_due: number; total_paid: number; pending: number; overdue: number } | null>(null)
@@ -36,6 +40,37 @@ export default function BookingsPage() {
 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentForm, setPaymentForm] = useState<Partial<ApiPayment>>({ payment_type: 'installment', payment_status: 'pending' })
+
+  // New Booking states
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [projectsList, setProjectsList] = useState<ApiProject[]>([])
+  const [towersList, setTowersList] = useState<ApiTower[]>([])
+  const [unitsList, setUnitsList] = useState<ApiUnit[]>([])
+  const [leadsList, setLeadsList] = useState<ApiLead[]>([])
+  const [employeesList, setEmployeesList] = useState<ApiEmployee[]>([])
+  const [savingBooking, setSavingBooking] = useState(false)
+  const [bookingForm, setBookingForm] = useState<{
+    project_id?: string
+    tower_id?: string
+    unit_id?: string
+    lead_id?: string
+    customer_name: string
+    customer_phone: string
+    customer_email: string
+    booking_date: string
+    booking_amount: string
+    agreement_status: 'draft' | 'signed' | 'registered'
+    notes: string
+    assigned_to?: string
+  }>({
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    booking_date: new Date().toISOString().split('T')[0],
+    booking_amount: '',
+    agreement_status: 'draft',
+    notes: '',
+  })
 
   // ── load bookings ──────────────────────────────────────────────────────────
   const loadBookings = useCallback(() => {
@@ -80,14 +115,130 @@ export default function BookingsPage() {
     } catch {}
   }
 
+  // ── open new booking modal ──────────────────────────────────────────────────
+  const openNewBooking = async () => {
+    setTowersList([])
+    setUnitsList([])
+    setBookingForm({
+      customer_name: '',
+      customer_phone: '',
+      customer_email: '',
+      booking_date: new Date().toISOString().split('T')[0],
+      booking_amount: '',
+      agreement_status: 'draft',
+      notes: '',
+    })
+
+    try {
+      const pRes = await projectsApi.list({ limit: 100 })
+      setProjectsList(pRes.data.data)
+    } catch {}
+
+    try {
+      const lRes = await leadsApi.list({ limit: 200 })
+      setLeadsList(lRes.data.data)
+    } catch {}
+
+    try {
+      const eRes = await usersApi.employees()
+      setEmployeesList(eRes.data.data)
+    } catch {}
+
+    setShowCreateModal(true)
+  }
+
+  // ── handle project selection ────────────────────────────────────────────────
+  const handleProjectChange = async (projIdStr: string) => {
+    const projId = projIdStr ? Number(projIdStr) : undefined
+    setBookingForm(f => ({ ...f, project_id: projIdStr, tower_id: '', unit_id: '' }))
+    setTowersList([])
+    setUnitsList([])
+    if (!projId) return
+    try {
+      const r = await inventoryApi.getTowers(projId)
+      setTowersList(r.data.data)
+    } catch {}
+  }
+
+  // ── handle tower selection ──────────────────────────────────────────────────
+  const handleTowerChange = async (towIdStr: string) => {
+    const towId = towIdStr ? Number(towIdStr) : undefined
+    setBookingForm(f => ({ ...f, tower_id: towIdStr, unit_id: '' }))
+    setUnitsList([])
+    if (!towId) return
+    try {
+      const r = await inventoryApi.getUnits(towId)
+      setUnitsList(r.data.data.filter(u => ['available', 'reserved', 'hold'].includes(u.status)))
+    } catch {}
+  }
+
+  // ── handle lead selection ───────────────────────────────────────────────────
+  const handleLeadChange = (ldIdStr: string) => {
+    const ldId = ldIdStr ? Number(ldIdStr) : undefined
+    const selectedLead = leadsList.find(l => l.id === ldId)
+    if (selectedLead) {
+      setBookingForm(f => ({
+        ...f,
+        lead_id: ldIdStr,
+        customer_name: selectedLead.name,
+        customer_phone: selectedLead.phone,
+        customer_email: selectedLead.email ?? '',
+      }))
+    } else {
+      setBookingForm(f => ({ ...f, lead_id: ldIdStr }))
+    }
+  }
+
+  // ── submit booking ──────────────────────────────────────────────────────────
+  const handleCreateBooking = async () => {
+    if (!bookingForm.unit_id) {
+      addToast('Please select a unit to book.', 'error')
+      return
+    }
+    if (!bookingForm.customer_name) {
+      addToast('Please enter customer name.', 'error')
+      return
+    }
+    if (!bookingForm.customer_phone) {
+      addToast('Please enter customer phone number.', 'error')
+      return
+    }
+    if (!bookingForm.booking_amount || Number(bookingForm.booking_amount) <= 0) {
+      addToast('Please enter a valid booking amount.', 'error')
+      return
+    }
+
+    setSavingBooking(true)
+    try {
+      const payload = {
+        unit_id: Number(bookingForm.unit_id),
+        lead_id: bookingForm.lead_id ? Number(bookingForm.lead_id) : undefined,
+        customer_name: bookingForm.customer_name,
+        customer_phone: bookingForm.customer_phone,
+        customer_email: bookingForm.customer_email || undefined,
+        assigned_to: bookingForm.assigned_to ? Number(bookingForm.assigned_to) : undefined,
+        booking_date: bookingForm.booking_date,
+        booking_amount: Number(bookingForm.booking_amount),
+        agreement_status: bookingForm.agreement_status,
+        notes: bookingForm.notes || undefined,
+      }
+
+      await inventoryApi.createBooking(payload)
+      addToast('Unit booked successfully!', 'success')
+      setShowCreateModal(false)
+      loadBookings()
+    } catch (err: any) {
+      addToast(err.response?.data?.message || 'Failed to create booking.', 'error')
+    } finally {
+      setSavingBooking(false)
+    }
+  }
+
   return (
     <AppShell>
       <AppHeader title="Bookings" subtitle="All unit bookings and payment tracking" />
-      <div style={{ padding: '24px 28px' }}>
-        <PageHeader
-          title="Bookings"
-          description="All unit bookings and payment tracking"
-        />
+      <main className="flex flex-col h-full bg-cream-canvas relative" style={{ paddingTop: '56px' }}>
+        <div style={{ padding: '24px 28px' }}>
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'flex-end' }}>
@@ -108,6 +259,9 @@ export default function BookingsPage() {
           </Select>
           <Button variant="outline" size="sm" onClick={loadBookings} id="refresh-bookings-btn">
             <RefreshCw style={{ width: 13, height: 13 }} />
+          </Button>
+          <Button id="add-booking-btn" size="sm" onClick={openNewBooking}>
+            <Plus style={{ width: 13, height: 13, marginRight: 4 }} /> New Booking
           </Button>
         </div>
 
@@ -162,6 +316,145 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
+
+      {/* ── New Booking Modal ── */}
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="New Unit Booking" size="lg">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <Select
+              id="booking-project"
+              label="Project *"
+              value={bookingForm.project_id ?? ''}
+              onChange={e => handleProjectChange(e.target.value)}
+            >
+              <option value="">Select project...</option>
+              {projectsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+
+            <Select
+              id="booking-tower"
+              label="Tower *"
+              value={bookingForm.tower_id ?? ''}
+              disabled={!bookingForm.project_id}
+              onChange={e => handleTowerChange(e.target.value)}
+            >
+              <option value="">Select tower...</option>
+              {towersList.map(t => <option key={t.id} value={t.id}>{t.tower_name}</option>)}
+            </Select>
+
+            <Select
+              id="booking-unit"
+              label="Unit *"
+              value={bookingForm.unit_id ?? ''}
+              disabled={!bookingForm.tower_id}
+              onChange={e => setBookingForm(f => ({ ...f, unit_id: e.target.value }))}
+            >
+              <option value="">Select unit...</option>
+              {unitsList.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.unit_number} ({u.bhk_type} · Floor {u.floor_number} · {u.status})
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Select
+              id="booking-lead"
+              label="Link Lead (Optional)"
+              value={bookingForm.lead_id ?? ''}
+              onChange={e => handleLeadChange(e.target.value)}
+            >
+              <option value="">Select lead to link details...</option>
+              {leadsList.map(l => (
+                <option key={l.id} value={l.id}>
+                  {l.name} ({l.phone})
+                </option>
+              ))}
+            </Select>
+
+            <Select
+              id="booking-representative"
+              label="Assigned Representative"
+              value={bookingForm.assigned_to ?? ''}
+              onChange={e => setBookingForm(f => ({ ...f, assigned_to: e.target.value }))}
+            >
+              <option value="">Select representative...</option>
+              {employeesList.map(emp => (
+                <option key={emp.id} value={emp.id}>{emp.name}</option>
+              ))}
+            </Select>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <Input
+              id="booking-customer-name"
+              label="Customer Name *"
+              value={bookingForm.customer_name}
+              onChange={e => setBookingForm(f => ({ ...f, customer_name: e.target.value }))}
+            />
+
+            <Input
+              id="booking-customer-phone"
+              label="Customer Phone *"
+              value={bookingForm.customer_phone}
+              onChange={e => setBookingForm(f => ({ ...f, customer_phone: e.target.value }))}
+            />
+
+            <Input
+              id="booking-customer-email"
+              label="Customer Email"
+              type="email"
+              value={bookingForm.customer_email}
+              onChange={e => setBookingForm(f => ({ ...f, customer_email: e.target.value }))}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <Input
+              id="booking-amount-input"
+              label="Booking Amount (₹) *"
+              type="number"
+              min={0}
+              value={bookingForm.booking_amount}
+              onChange={e => setBookingForm(f => ({ ...f, booking_amount: e.target.value }))}
+            />
+
+            <Input
+              id="booking-date-input"
+              label="Booking Date *"
+              type="date"
+              value={bookingForm.booking_date}
+              onChange={e => setBookingForm(f => ({ ...f, booking_date: e.target.value }))}
+            />
+
+            <Select
+              id="booking-agreement-status"
+              label="Agreement Status"
+              value={bookingForm.agreement_status}
+              onChange={e => setBookingForm(f => ({ ...f, agreement_status: e.target.value as any }))}
+            >
+              <option value="draft">Draft</option>
+              <option value="signed">Signed</option>
+              <option value="registered">Registered</option>
+            </Select>
+          </div>
+
+          <Input
+            id="booking-notes-input"
+            label="Notes / Special Requests"
+            value={bookingForm.notes}
+            onChange={e => setBookingForm(f => ({ ...f, notes: e.target.value }))}
+          />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+            <Button variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+            <Button id="save-booking-btn" size="sm" onClick={handleCreateBooking} disabled={savingBooking}>
+              {savingBooking ? 'Saving...' : 'Book Unit'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Booking Detail Modal ── */}
       <Modal open={!!viewBooking} onClose={() => setViewBooking(null)} title={`Booking — ${viewBooking?.customer_name ?? ''}`} size="lg">
@@ -219,7 +512,7 @@ export default function BookingsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {payments.map(p => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#374151', textTransform: 'capitalize' }}>{p.payment_type}</span>
                         {p.due_date && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 8 }}>Due: {p.due_date}</span>}
                       </div>
@@ -265,6 +558,7 @@ export default function BookingsPage() {
       </Modal>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </AppShell>
-  )
+    </main>
+  </AppShell>
+)
 }

@@ -1159,9 +1159,15 @@ export default function ProjectsPage() {
                 <div className="py-12 text-center text-xs text-body-brown">Loading project relationships...</div>
               ) : detailTab === 'specs' ? (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-stone-border">
-                    <span className="text-body-brown font-semibold">Status:</span>
-                    {renderStatusBadge(detailProject.status)}
+                  <div className="grid grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-stone-border">
+                    <div>
+                      <span className="text-muted-gray block text-[10px] font-semibold uppercase">Status</span>
+                      <div className="mt-1">{renderStatusBadge(detailProject.status)}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-gray block text-[10px] font-semibold uppercase">RERA Number</span>
+                      <span className="font-bold text-heading-charcoal">{detailProject.rera_number || 'N/A'}</span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-stone-border">
@@ -1170,11 +1176,53 @@ export default function ProjectsPage() {
                       <span className="font-bold text-heading-charcoal">{detailProject.developer || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-muted-gray block text-[10px] font-semibold uppercase">Location</span>
-                      <span className="font-bold text-heading-charcoal">
-                        {detailProject.location ? `${detailProject.location}, ` : ''}
-                        {detailProject.city}
-                      </span>
+                      <span className="text-muted-gray block text-[10px] font-semibold uppercase">Location Address</span>
+                      <div className="font-bold text-heading-charcoal space-y-0.5">
+                        {detailProject.landmark && <span className="block text-[11px] font-normal text-muted-gray">Near {detailProject.landmark}</span>}
+                        <span>
+                          {detailProject.location ? `${detailProject.location}, ` : ''}
+                          {detailProject.city}
+                          {detailProject.state ? `, ${detailProject.state}` : ''}
+                          {detailProject.pincode ? ` - ${detailProject.pincode}` : ''}
+                        </span>
+                        {detailProject.google_map_url && (
+                          <a
+                            href={detailProject.google_map_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-[10px] text-sky-blue hover:underline font-semibold mt-1"
+                          >
+                            📍 View on Google Maps
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Construction Progress */}
+                  <div className="bg-white p-3 rounded-xl border border-stone-border space-y-2">
+                    <span className="text-muted-gray block text-[10px] font-semibold uppercase">Construction Status</span>
+                    <div className="grid grid-cols-2 gap-2 text-heading-charcoal font-semibold mb-2">
+                      <div className="capitalize">Stage: {detailProject.construction_stage || 'Planning'}</div>
+                      <div className="text-right">Progress: {detailProject.construction_pct ?? 0}%</div>
+                    </div>
+                    <div className="w-full bg-stone-surface rounded-full h-2 overflow-hidden border border-stone-border">
+                      <div 
+                        className="bg-ink-black h-full transition-all duration-500" 
+                        style={{ width: `${detailProject.construction_pct ?? 0}%` }} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dates */}
+                  <div className="grid grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-stone-border">
+                    <div>
+                      <span className="text-muted-gray block text-[10px] font-semibold uppercase">Launch Date</span>
+                      <span className="font-bold text-heading-charcoal">{detailProject.launch_date || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-gray block text-[10px] font-semibold uppercase">Possession Date</span>
+                      <span className="font-bold text-heading-charcoal">{detailProject.possession_date || 'N/A'}</span>
                     </div>
                   </div>
 
