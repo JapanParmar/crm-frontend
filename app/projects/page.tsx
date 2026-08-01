@@ -118,6 +118,18 @@ export default function ProjectsPage() {
     construction_pct: 0,
     description: '',
     amenities: [],
+
+    // Excel Columns
+    sr_no: '',
+    project_type: '',
+    project_status: '',
+    passession: '',
+    price: '',
+    size_sqft: '',
+    contact_person: '',
+    contact_number: '',
+    brochure_link: '',
+    remarks: '',
   })
   const [amenityInput, setAmenityInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -347,6 +359,18 @@ export default function ProjectsPage() {
       construction_pct: 0,
       description: '',
       amenities: [],
+      
+      // Excel Columns
+      sr_no: '',
+      project_type: '',
+      project_status: '',
+      passession: '',
+      price: '',
+      size_sqft: '',
+      contact_person: '',
+      contact_number: '',
+      brochure_link: '',
+      remarks: '',
     })
     setIsCreateOpen(true)
   }
@@ -380,6 +404,18 @@ export default function ProjectsPage() {
       description: project.description || '',
       amenities: project.amenities || [],
       manager_id: project.manager?.id,
+
+      // Excel Columns
+      sr_no: project.sr_no || '',
+      project_type: project.project_type || '',
+      project_status: project.project_status || '',
+      passession: project.passession || '',
+      price: project.price || '',
+      size_sqft: project.size_sqft || '',
+      contact_person: project.contact_person || '',
+      contact_number: project.contact_number || '',
+      brochure_link: project.brochure_link || '',
+      remarks: project.remarks || '',
     })
     setIsEditOpen(true)
   }
@@ -860,6 +896,78 @@ export default function ProjectsPage() {
               />
             </div>
 
+            <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-4">
+              <span className="text-xs font-bold text-heading-charcoal block border-b border-stone-border pb-1.5">Excel Metadata & Contacts</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Input
+                  label="Sr. No."
+                  placeholder="e.g. 1"
+                  value={formData.sr_no || ''}
+                  onChange={(e) => setFormData({ ...formData, sr_no: e.target.value })}
+                />
+                <Input
+                  label="Price Description"
+                  placeholder="e.g. 50 Lac Onwards"
+                  value={formData.price || ''}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                />
+                <Input
+                  label="Size (Sq. ft.)"
+                  placeholder="e.g. 950 to 1450"
+                  value={formData.size_sqft || ''}
+                  onChange={(e) => setFormData({ ...formData, size_sqft: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Input
+                  label="Project Type (Excel)"
+                  placeholder="e.g. 2 BHK, 3 BHK"
+                  value={formData.project_type || ''}
+                  onChange={(e) => setFormData({ ...formData, project_type: e.target.value })}
+                />
+                <Input
+                  label="Project Status (Excel)"
+                  placeholder="e.g. Ready To Move"
+                  value={formData.project_status || ''}
+                  onChange={(e) => setFormData({ ...formData, project_status: e.target.value })}
+                />
+                <Input
+                  label="Possession Date (Excel)"
+                  placeholder="e.g. Dec-24"
+                  value={formData.passession || ''}
+                  onChange={(e) => setFormData({ ...formData, passession: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  label="Contact Person"
+                  placeholder="Contact Person Name"
+                  value={formData.contact_person || ''}
+                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                />
+                <Input
+                  label="Contact Number"
+                  placeholder="Contact Mobile Number"
+                  value={formData.contact_number || ''}
+                  onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
+                <Input
+                  label="Brochure Link"
+                  placeholder="https://example.com/brochure.pdf"
+                  value={formData.brochure_link || ''}
+                  onChange={(e) => setFormData({ ...formData, brochure_link: e.target.value })}
+                />
+                <Input
+                  label="Remarks"
+                  placeholder="Enter remarks..."
+                  value={formData.remarks || ''}
+                  onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 label="Developer"
@@ -1250,6 +1358,34 @@ export default function ProjectsPage() {
                         <span className="font-bold text-heading-charcoal text-sm">{detailProject.sold_units}</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Excel Sheet Metadata Card */}
+                  <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 grid grid-cols-2 gap-3.5">
+                    <div><span className="text-muted-gray text-[9px] uppercase font-bold">Sr. No.</span><p className="font-bold text-heading-charcoal mt-0.5">{detailProject.sr_no || 'N/A'}</p></div>
+                    <div><span className="text-muted-gray text-[9px] uppercase font-bold">Project Type (Excel)</span><p className="font-bold text-heading-charcoal mt-0.5">{detailProject.project_type || 'N/A'}</p></div>
+                    <div><span className="text-muted-gray text-[9px] uppercase font-bold">Project Status (Excel)</span><p className="font-bold text-heading-charcoal mt-0.5">{detailProject.project_status || 'N/A'}</p></div>
+                    <div><span className="text-muted-gray text-[9px] uppercase font-bold">Possession (Excel)</span><p className="font-bold text-heading-charcoal mt-0.5">{detailProject.passession || 'N/A'}</p></div>
+                    <div><span className="text-muted-gray text-[9px] uppercase font-bold">Price Range (Excel)</span><p className="font-bold text-heading-charcoal mt-0.5">{detailProject.price || 'N/A'}</p></div>
+                    <div><span className="text-muted-gray text-[9px] uppercase font-bold">Size Sq. Ft.</span><p className="font-bold text-heading-charcoal mt-0.5">{detailProject.size_sqft || 'N/A'}</p></div>
+                    <div><span className="text-muted-gray text-[9px] uppercase font-bold">Contact Person</span><p className="font-bold text-heading-charcoal mt-0.5">{detailProject.contact_person || 'N/A'}</p></div>
+                    <div><span className="text-muted-gray text-[9px] uppercase font-bold">Contact Number</span><p className="font-bold text-heading-charcoal mt-0.5">{detailProject.contact_number || 'N/A'}</p></div>
+                    {detailProject.brochure_link && (
+                      <div className="col-span-2">
+                        <span className="text-muted-gray text-[9px] uppercase font-bold">Brochure Link</span>
+                        <p className="font-bold text-heading-charcoal mt-0.5">
+                          <a href={detailProject.brochure_link} target="_blank" rel="noopener noreferrer" className="text-sky-blue hover:underline">
+                            Download / View Brochure ↗
+                          </a>
+                        </p>
+                      </div>
+                    )}
+                    {detailProject.remarks && (
+                      <div className="col-span-2">
+                        <span className="text-muted-gray text-[9px] uppercase font-bold">Remarks</span>
+                        <p className="italic text-body-brown mt-0.5">{detailProject.remarks}</p>
+                      </div>
+                    )}
                   </div>
 
                   {detailProject.amenities && detailProject.amenities.length > 0 && (

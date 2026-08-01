@@ -55,6 +55,7 @@ import {
 
 const attendanceColumnHelper = createColumnHelper<ApiAttendance>()
 const payrollColumnHelper = createColumnHelper<ApiPayroll>()
+const empColumnHelper = createColumnHelper<ApiHREmployee>()
 
 export default function HRPage() {
   const { addToast } = useToastStore()
@@ -111,6 +112,22 @@ export default function HRPage() {
     hra: undefined,
     allowances: undefined,
     deductions: undefined,
+    
+    // Excel Columns
+    sr_no: '',
+    dob: '',
+    gender: '',
+    personal_phone: '',
+    office_phone: '',
+    personal_email: '',
+    office_email: '',
+    manager: '',
+    device_assigned: '',
+    laptop_model: '',
+    laptop_serial_number: '',
+    mobile_model: '',
+    mobile_serial_number: '',
+    location: '',
   })
   const [submittingEmp, setSubmittingEmp] = useState(false)
   const [uploadingEmpImage, setUploadingEmpImage] = useState(false)
@@ -368,6 +385,22 @@ export default function HRPage() {
       hra: undefined,
       allowances: undefined,
       deductions: undefined,
+      
+      // Excel Columns
+      sr_no: '',
+      dob: '',
+      gender: '',
+      personal_phone: '',
+      office_phone: '',
+      personal_email: '',
+      office_email: '',
+      manager: '',
+      device_assigned: '',
+      laptop_model: '',
+      laptop_serial_number: '',
+      mobile_model: '',
+      mobile_serial_number: '',
+      location: '',
     })
     setIsCreateEmpOpen(true)
   }
@@ -401,6 +434,22 @@ export default function HRPage() {
       hra: emp.hra !== null ? emp.hra : undefined,
       allowances: emp.allowances !== null ? emp.allowances : undefined,
       deductions: emp.deductions !== null ? emp.deductions : undefined,
+
+      // Excel Columns
+      sr_no: emp.sr_no || '',
+      dob: emp.dob || '',
+      gender: emp.gender || '',
+      personal_phone: emp.personal_phone || '',
+      office_phone: emp.office_phone || '',
+      personal_email: emp.personal_email || '',
+      office_email: emp.office_email || '',
+      manager: emp.manager || '',
+      device_assigned: emp.device_assigned || '',
+      laptop_model: emp.laptop_model || '',
+      laptop_serial_number: emp.laptop_serial_number || '',
+      mobile_model: emp.mobile_model || '',
+      mobile_serial_number: emp.mobile_serial_number || '',
+      location: emp.location || '',
     })
     setIsEditEmpOpen(true)
   }
@@ -495,6 +544,138 @@ export default function HRPage() {
     { label: isAdminOrHr ? 'Leave Requests' : 'My Leave Applications', value: 'leaves' },
     { label: isAdminOrHr ? 'Payroll & Payslips' : 'My Payslips', value: 'payroll' },
   ]
+
+  // Columns definition for Workforce Directory Table
+  const employeeColumns = useMemo(() => [
+    empColumnHelper.accessor('sr_no', {
+      header: 'Sr. No.',
+      cell: (info) => <span className="font-semibold text-heading-charcoal">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('employee_code', {
+      header: 'Employee ID',
+      cell: (info) => <span className="font-extrabold text-heading-charcoal">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.display({
+      id: 'name',
+      header: 'Employee Name',
+      cell: ({ row }) => {
+        const emp = row.original
+        return (
+          <div className="flex items-center gap-2">
+            <Avatar name={`${emp.first_name} ${emp.last_name}`} src={emp.profile_image || undefined} size="xs" />
+            <span className="font-bold text-heading-charcoal">{emp.first_name} {emp.last_name}</span>
+          </div>
+        )
+      }
+    }),
+    empColumnHelper.accessor('dob', {
+      header: 'DOB',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('gender', {
+      header: 'Gender',
+      cell: (info) => <span className="text-body-brown capitalize font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('department', {
+      header: 'Department',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('designation', {
+      header: 'Designation',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('personal_phone', {
+      header: 'P. Mobile Number',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('phone', {
+      header: 'O. Mobile Number',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('personal_email', {
+      header: 'P. Email',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('email', {
+      header: 'O. Email',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('joining_date', {
+      header: 'Joining Date',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('manager', {
+      header: 'Manager',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('device_assigned', {
+      header: 'Device Assigned',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('laptop_model', {
+      header: 'Laptop Model',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('laptop_serial_number', {
+      header: 'Laptop Serial Number',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('mobile_model', {
+      header: 'Mobile Model',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('mobile_serial_number', {
+      header: 'Mobile Serial Number',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('location', {
+      header: 'Location',
+      cell: (info) => <span className="text-body-brown font-medium">{info.getValue() || '--'}</span>
+    }),
+    empColumnHelper.accessor('status', {
+      header: 'Status',
+      cell: (info) => {
+        const val = info.getValue()
+        return renderStatusBadge(val)
+      }
+    }),
+    empColumnHelper.display({
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const emp = row.original
+        return (
+          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setDetailEmp(emp)}
+              className="p-1.5 rounded-buttons hover:bg-stone-surface text-body-brown hover:text-heading-charcoal transition-colors border border-transparent"
+              title="View Profile"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+            {isAdminOrHr && (
+              <>
+                <button
+                  onClick={() => handleOpenEditEmp(emp)}
+                  className="p-1.5 rounded-buttons hover:bg-stone-surface text-body-brown hover:text-heading-charcoal transition-colors border border-transparent"
+                  title="Edit Record"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteEmp(emp)}
+                  className="p-1.5 rounded-buttons hover:bg-red-50 text-alert-red transition-colors"
+                  title="Delete Record"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+        )
+      }
+    })
+  ], [isAdminOrHr])
 
   // Columns definition for TanStack Attendance Table
   const attendanceColumns = useMemo(() => [
@@ -894,123 +1075,26 @@ export default function HRPage() {
               )}
             </div>
 
-            {/* Content Switcher for Directory / Leaves */}
             {activeTab === 'directory' ? (
               loadingEmp ? (
                 <div className="py-20 text-center text-muted-gray text-sm font-medium">Loading employee directory...</div>
-              ) : employees.length === 0 ? (
-                <div className="py-16 text-center border border-dashed border-stone-border rounded-cards bg-white">
-                  <UserCheck className="w-10 h-10 mx-auto text-muted-gray mb-3" />
-                  <h3 className="text-base font-bold text-heading-charcoal">No employees found</h3>
-                  <p className="text-xs text-body-brown mt-1 max-w-sm mx-auto">
-                    No staff records match your current filters. Add a new employee or clear filters.
-                  </p>
-                </div>
               ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {employees.map((emp) => (
-                      <div
-                        key={emp.id}
-                        className="bg-white border border-stone-surface hover:border-stone-border transition-all rounded-cards p-6 flex flex-col justify-between shadow-sm hover:shadow-md"
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-3 mb-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar name={`${emp.first_name} ${emp.last_name}`} src={emp.profile_image || undefined} size="md" />
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px] font-extrabold bg-stone-surface text-body-brown px-1.5 py-0.5 rounded-badges border border-stone-border">
-                                    {emp.employee_code}
-                                  </span>
-                                  <span className="text-[10px] uppercase font-bold text-muted-gray">
-                                    {emp.employment_type.replace('_', ' ')}
-                                  </span>
-                                </div>
-                                <h3 className="text-sm font-extrabold text-heading-charcoal mt-1 leading-snug">
-                                  {emp.first_name} {emp.last_name}
-                                </h3>
-                              </div>
-                            </div>
-                            {renderStatusBadge(emp.status)}
-                          </div>
-
-                          <div className="bg-[#fcfbf9] border border-stone-surface rounded-xl p-3 mb-4 space-y-1">
-                            <p className="text-xs font-bold text-heading-charcoal flex items-center justify-between">
-                              <span>{emp.designation}</span>
-                              <span className="text-[10px] font-bold text-body-brown bg-white border border-stone-border px-2 py-0.5 rounded-pills">
-                                {emp.department}
-                              </span>
-                            </p>
-                          </div>
-
-                          <div className="space-y-2 text-xs text-body-brown mb-4">
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-3.5 h-3.5 text-muted-gray flex-shrink-0" />
-                              <span className="truncate">{emp.email}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-3.5 h-3.5 text-muted-gray flex-shrink-0" />
-                              <span>{emp.phone}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pt-3 border-t border-stone-surface flex items-center justify-between text-xs">
-                          <span className="font-extrabold text-heading-charcoal">
-                            {isAdminOrHr || emp.email === currentUser?.email || emp.user_id === currentUser?.id
-                              ? `${formatCurrency(emp.salary)}/mo`
-                              : ''}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => setDetailEmp(emp)}
-                              className="p-1.5 rounded-buttons hover:bg-stone-surface text-body-brown hover:text-heading-charcoal transition-colors border border-transparent"
-                              title="View Profile"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            {isAdminOrHr && (
-                              <>
-                                <button
-                                  onClick={() => handleOpenEditEmp(emp)}
-                                  className="p-1.5 rounded-buttons hover:bg-stone-surface text-body-brown hover:text-heading-charcoal transition-colors border border-transparent"
-                                  title="Edit Record"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteEmp(emp)}
-                                  className="p-1.5 rounded-buttons hover:bg-red-50 text-alert-red transition-colors"
-                                  title="Delete Record"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Directory Pagination */}
-                  {empTotalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 pb-6">
-                      <span className="text-xs text-body-brown">
-                        Page <span className="font-bold text-heading-charcoal">{empPage}</span> of {empTotalPages}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="outline" disabled={empPage === 1} onClick={() => setEmpPage((p) => Math.max(1, p - 1))}>
-                          Previous
-                        </Button>
-                        <Button size="sm" variant="outline" disabled={empPage === empTotalPages} onClick={() => setEmpPage((p) => Math.min(empTotalPages, p + 1))}>
-                          Next
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
+                <div className="bg-white rounded-cards border border-stone-surface overflow-hidden flex flex-col min-h-[500px]">
+                  <DataTable
+                    columns={employeeColumns}
+                    data={employees}
+                    loading={loadingEmp}
+                    getRowId={(row) => row.id.toString()}
+                    pageIndex={empPage - 1}
+                    pageSize={12}
+                    pageCount={empTotalPages}
+                    totalCount={stats?.all ?? employees.length}
+                    onPageChange={(pIdx) => setEmpPage(pIdx + 1)}
+                    onRowClick={(emp) => setDetailEmp(emp)}
+                    emptyTitle="No employees found"
+                    emptyDescription="Add your first employee or adjust your filters to see results."
+                  />
+                </div>
               )
             ) : (
               /* Leaves applications list */
@@ -1269,6 +1353,121 @@ export default function HRPage() {
                   placeholder="Defaults to 5%"
                   value={empFormData.deductions ?? ''}
                   onChange={(e) => setEmpFormData({ ...empFormData, deductions: e.target.value ? parseFloat(e.target.value) : undefined })}
+                />
+              </div>
+            </div>
+
+            <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-4">
+              <span className="text-xs font-bold text-heading-charcoal block border-b border-stone-border pb-1.5">Excel Identifiers & Office Details</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Input
+                  label="Sr. No."
+                  placeholder="e.g. 1"
+                  value={empFormData.sr_no || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, sr_no: e.target.value })}
+                />
+                <Input
+                  label="O. Mobile Number"
+                  placeholder="Office Phone"
+                  value={empFormData.office_phone || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, office_phone: e.target.value })}
+                />
+                <Input
+                  label="O. Email"
+                  placeholder="Office Email"
+                  value={empFormData.office_email || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, office_email: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  label="Manager"
+                  placeholder="Manager Name"
+                  value={empFormData.manager || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, manager: e.target.value })}
+                />
+                <Input
+                  label="Location"
+                  placeholder="Work Location (e.g. VD)"
+                  value={empFormData.location || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, location: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-4">
+              <span className="text-xs font-bold text-heading-charcoal block border-b border-stone-border pb-1.5">Personal Details</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  label="Date of Birth (DOB)"
+                  placeholder="DD-MM-YYYY or YYYY-MM-DD"
+                  value={empFormData.dob || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, dob: e.target.value })}
+                />
+                <Select
+                  label="Gender"
+                  value={empFormData.gender || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, gender: e.target.value })}
+                  options={[
+                    { value: '', label: 'Select Gender' },
+                    { value: 'Male', label: 'Male' },
+                    { value: 'Female', label: 'Female' },
+                    { value: 'Other', label: 'Other' },
+                  ]}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  label="P. Mobile Number"
+                  placeholder="Personal Phone"
+                  value={empFormData.personal_phone || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, personal_phone: e.target.value })}
+                />
+                <Input
+                  label="P. Email"
+                  placeholder="Personal Email"
+                  value={empFormData.personal_email || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, personal_email: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-4">
+              <span className="text-xs font-bold text-heading-charcoal block border-b border-stone-border pb-1.5">Hardware / Device Assignments</span>
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
+                <Input
+                  label="Device Assigned"
+                  placeholder="e.g. LAPTOP / MOBILE"
+                  value={empFormData.device_assigned || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, device_assigned: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  label="Laptop Model"
+                  placeholder="Laptop Model"
+                  value={empFormData.laptop_model || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, laptop_model: e.target.value })}
+                />
+                <Input
+                  label="Laptop Serial Number"
+                  placeholder="Laptop S/N"
+                  value={empFormData.laptop_serial_number || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, laptop_serial_number: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  label="Mobile Model"
+                  placeholder="Mobile Model"
+                  value={empFormData.mobile_model || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, mobile_model: e.target.value })}
+                />
+                <Input
+                  label="Mobile Serial Number"
+                  placeholder="Mobile S/N"
+                  value={empFormData.mobile_serial_number || ''}
+                  onChange={(e) => setEmpFormData({ ...empFormData, mobile_serial_number: e.target.value })}
                 />
               </div>
             </div>
@@ -1596,6 +1795,37 @@ export default function HRPage() {
                 <p className="font-medium"><span className="text-body-brown font-semibold">Phone:</span> {detailEmp.phone}</p>
                 {detailEmp.address && <p className="font-medium"><span className="text-body-brown font-semibold">Address:</span> {detailEmp.address}</p>}
               </div>
+
+              {/* Office Details */}
+              <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-2">
+                <span className="text-muted-gray text-[9px] uppercase font-bold block border-b border-stone-border pb-1">Excel & Office Info</span>
+                {detailEmp.sr_no && <p className="font-medium"><span className="text-body-brown font-semibold">Sr. No.:</span> {detailEmp.sr_no}</p>}
+                {detailEmp.office_phone && <p className="font-medium"><span className="text-body-brown font-semibold">O. Mobile Number:</span> {detailEmp.office_phone}</p>}
+                {detailEmp.office_email && <p className="font-medium"><span className="text-body-brown font-semibold">O. Email:</span> {detailEmp.office_email}</p>}
+                {detailEmp.manager && <p className="font-medium"><span className="text-body-brown font-semibold">Manager:</span> {detailEmp.manager}</p>}
+                {detailEmp.location && <p className="font-medium"><span className="text-body-brown font-semibold">Location:</span> {detailEmp.location}</p>}
+              </div>
+
+              {/* Personal Details */}
+              <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-2">
+                <span className="text-muted-gray text-[9px] uppercase font-bold block border-b border-stone-border pb-1">Personal Details</span>
+                {detailEmp.dob && <p className="font-medium"><span className="text-body-brown font-semibold">DOB:</span> {detailEmp.dob}</p>}
+                {detailEmp.gender && <p className="font-medium"><span className="text-body-brown font-semibold">Gender:</span> {detailEmp.gender}</p>}
+                {detailEmp.personal_phone && <p className="font-medium"><span className="text-body-brown font-semibold">P. Mobile Number:</span> {detailEmp.personal_phone}</p>}
+                {detailEmp.personal_email && <p className="font-medium"><span className="text-body-brown font-semibold">P. Email:</span> {detailEmp.personal_email}</p>}
+              </div>
+
+              {/* Hardware / Devices */}
+              {(detailEmp.device_assigned || detailEmp.laptop_model || detailEmp.mobile_model) && (
+                <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-2">
+                  <span className="text-muted-gray text-[9px] uppercase font-bold block border-b border-stone-border pb-1">Hardware / Assigned Devices</span>
+                  {detailEmp.device_assigned && <p className="font-medium"><span className="text-body-brown font-semibold">Devices Assigned:</span> {detailEmp.device_assigned}</p>}
+                  {detailEmp.laptop_model && <p className="font-medium"><span className="text-body-brown font-semibold">Laptop Model:</span> {detailEmp.laptop_model}</p>}
+                  {detailEmp.laptop_serial_number && <p className="font-medium"><span className="text-body-brown font-semibold">Laptop Serial Number:</span> {detailEmp.laptop_serial_number}</p>}
+                  {detailEmp.mobile_model && <p className="font-medium"><span className="text-body-brown font-semibold">Mobile Model:</span> {detailEmp.mobile_model}</p>}
+                  {detailEmp.mobile_serial_number && <p className="font-medium"><span className="text-body-brown font-semibold">Mobile Serial Number:</span> {detailEmp.mobile_serial_number}</p>}
+                </div>
+              )}
 
               {(isAdminOrHr || detailEmp.email === currentUser?.email || detailEmp.user_id === currentUser?.id) && (detailEmp.pan_number || detailEmp.aadhar_number) && (
                 <div className="bg-[#fcfbf9] border border-stone-surface rounded-cards p-4 space-y-2">

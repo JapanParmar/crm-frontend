@@ -735,6 +735,18 @@ export interface ApiProject {
   site_visits?: ApiSiteVisit[]
   created_at: string
   updated_at: string
+  
+  // Excel Columns
+  sr_no?: string | null
+  project_type?: string | null
+  project_status?: string | null
+  passession?: string | null
+  price?: string | null
+  size_sqft?: string | null
+  contact_person?: string | null
+  contact_number?: string | null
+  brochure_link?: string | null
+  remarks?: string | null
 }
 
 export interface ProjectCounts {
@@ -784,6 +796,18 @@ export interface CreateProjectPayload {
   description?: string
   amenities?: string[]
   manager_id?: number
+  
+  // Excel Columns
+  sr_no?: string
+  project_type?: string
+  project_status?: string
+  passession?: string
+  price?: string
+  size_sqft?: string
+  contact_person?: string
+  contact_number?: string
+  brochure_link?: string
+  remarks?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -821,6 +845,22 @@ export interface ApiHREmployee {
   deductions?: number | null
   created_at: string
   updated_at: string
+
+  // Excel Columns
+  sr_no?: string | null
+  dob?: string | null
+  gender?: string | null
+  personal_phone?: string | null
+  office_phone?: string | null
+  personal_email?: string | null
+  office_email?: string | null
+  manager?: string | null
+  device_assigned?: string | null
+  laptop_model?: string | null
+  laptop_serial_number?: string | null
+  mobile_model?: string | null
+  mobile_serial_number?: string | null
+  location?: string | null
 }
 
 export interface HREmployeeStats {
@@ -870,6 +910,22 @@ export interface CreateHREmployeePayload {
   hra?: number
   allowances?: number
   deductions?: number
+
+  // Excel Columns
+  sr_no?: string
+  dob?: string
+  gender?: string
+  personal_phone?: string
+  office_phone?: string
+  personal_email?: string
+  office_email?: string
+  manager?: string
+  device_assigned?: string
+  laptop_model?: string
+  laptop_serial_number?: string
+  mobile_model?: string
+  mobile_serial_number?: string
+  location?: string
 }
 
 export interface ApiAttendance {
