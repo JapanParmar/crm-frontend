@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import { createColumnHelper } from '@tanstack/react-table'
+import { DataTable } from '@/components/ui/data-table'
 import {
   BookOpen, Plus, Search, Eye, Edit2, X,
   IndianRupee, Calendar, Phone, User, Loader2, RefreshCw,
@@ -15,6 +17,8 @@ import {
   inventoryApi, ApiBooking, ApiPayment, projectsApi, ApiProject,
   leadsApi, ApiLead, usersApi, ApiEmployee, ApiUnit, ApiTower
 } from '@/lib/api'
+
+const columnHelper = createColumnHelper<ApiBooking>()
 
 const AGR_COLORS: Record<string, string> = { draft: '#f59e0b', signed: '#3b82f6', registered: '#22c55e' }
 const PAY_STATUS_COLORS: Record<string, string> = { pending: '#f59e0b', paid: '#22c55e', overdue: '#ef4444' }
@@ -72,6 +76,18 @@ export default function BookingsPage() {
     notes: '',
   })
 
+  // ── view booking → load payments ───────────────────────────────────────────
+  const openBooking = useCallback(async (b: ApiBooking) => {
+    setViewBooking(b)
+    setLoadingPayments(true)
+    setPayments([])
+    try {
+      const r = await inventoryApi.getPayments(b.id)
+      setPayments(r.data.data)
+      setPaymentSummary(r.data.summary)
+    } catch {} finally { setLoadingPayments(false) }
+  }, [])
+
   // ── load bookings ──────────────────────────────────────────────────────────
   const loadBookings = useCallback(() => {
     setLoading(true)
@@ -83,17 +99,68 @@ export default function BookingsPage() {
 
   useEffect(() => { loadBookings() }, [loadBookings])
 
-  // ── view booking → load payments ───────────────────────────────────────────
-  const openBooking = async (b: ApiBooking) => {
-    setViewBooking(b)
-    setLoadingPayments(true)
-    setPayments([])
-    try {
-      const r = await inventoryApi.getPayments(b.id)
-      setPayments(r.data.data)
-      setPaymentSummary(r.data.summary)
-    } catch {} finally { setLoadingPayments(false) }
-  }
+  const columns = useMemo(() => [
+    columnHelper.accessor('customer_name', {
+      header: 'Customer',
+      cell: info => <span className="font-bold text-heading-charcoal">{info.getValue()}</span>
+    }),
+    columnHelper.accessor('customer_phone', {
+      header: 'Phone',
+      cell: info => <span className="text-body-brown">{info.getValue()}</span>
+    }),
+    columnHelper.accessor('unit', {
+      header: 'Unit',
+      cell: info => {
+        const u = info.getValue()
+        if (!u) return '—'
+        return (
+          <span style={{ background: '#eef2ff', color: '#6366f1', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
+            {u.unit_number} · {u.bhk_type}
+          </span>
+        )
+      }
+    }),
+    columnHelper.accessor(row => (row.unit as any)?.tower?.project?.name, {
+      id: 'project',
+      header: 'Project',
+      cell: info => <span className="text-body-brown">{info.getValue() || '—'}</span>
+    }),
+    columnHelper.accessor('booking_date', {
+      header: 'Booking Date',
+      cell: info => <span className="text-muted-gray">{info.getValue()}</span>
+    }),
+    columnHelper.accessor('booking_amount', {
+      header: 'Amount',
+      cell: info => <span className="font-bold text-heading-charcoal">{fmt(info.getValue())}</span>
+    }),
+    columnHelper.accessor('agreement_status', {
+      header: 'Agreement',
+      cell: info => {
+        const status = info.getValue()
+        return (
+          <span style={{ background: (AGR_COLORS[status] ?? '#9ca3af') + '22', color: AGR_COLORS[status] ?? '#9ca3af', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600, textTransform: 'capitalize' }}>
+            {status}
+          </span>
+        )
+      }
+    }),
+    columnHelper.display({
+      id: 'actions',
+      header: 'Actions',
+      cell: info => (
+        <button
+          id={`view-booking-${info.row.original.id}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            openBooking(info.row.original)
+          }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6366f1', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}
+        >
+          <Eye style={{ width: 13, height: 13 }} /> View
+        </button>
+      )
+    })
+  ], [openBooking])
 
   // ── add payment ────────────────────────────────────────────────────────────
   const savePayment = async () => {
@@ -238,84 +305,54 @@ export default function BookingsPage() {
     <AppShell>
       <AppHeader title="Bookings" subtitle="All unit bookings and payment tracking" />
       <main className="flex flex-col h-full bg-cream-canvas relative" style={{ paddingTop: '56px' }}>
-        <div style={{ padding: '24px 28px' }}>
-
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <Input
-              id="bookings-search"
-              placeholder="Search by customer name, phone..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: 32 }}
-            />
-          </div>
-          <Select id="agreement-filter" value={agreementFilter} onChange={e => setAgreementFilter(e.target.value)}>
-            <option value="">All Agreement Status</option>
-            <option value="draft">Draft</option>
-            <option value="signed">Signed</option>
-            <option value="registered">Registered</option>
-          </Select>
-          <Button variant="outline" size="sm" onClick={loadBookings} id="refresh-bookings-btn">
-            <RefreshCw style={{ width: 13, height: 13 }} />
-          </Button>
-          <Button id="add-booking-btn" size="sm" onClick={openNewBooking}>
-            <Plus style={{ width: 13, height: 13, marginRight: 4 }} /> New Booking
-          </Button>
+        <div className="bg-[#fcfbf9] border-b border-stone-surface sticky top-14 z-10 flex-shrink-0">
+          <PageHeader
+            title="Bookings Management"
+            description="Track, create, and manage unit bookings and agreements."
+            actions={
+              <Button id="add-booking-btn" size="sm" onClick={openNewBooking}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> New Booking
+              </Button>
+            }
+          />
         </div>
 
-        {/* Bookings table */}
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-            <Loader2 style={{ width: 28, height: 28, color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+        <div className="px-4 md:px-5 py-5 max-w-6xl w-full mx-auto space-y-6">
+          {/* Filters Row */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-white p-4 border border-stone-surface rounded-cards shadow-sm">
+            <div className="flex-1 min-w-[200px] relative">
+              <Search className="w-4 h-4 text-muted-gray absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                id="bookings-search"
+                placeholder="Search by customer name or phone..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Select id="agreement-filter" value={agreementFilter} onChange={e => setAgreementFilter(e.target.value)}>
+                <option value="">All Agreement Status</option>
+                <option value="draft">Draft</option>
+                <option value="signed">Signed</option>
+                <option value="registered">Registered</option>
+              </Select>
+              <Button variant="outline" size="sm" onClick={loadBookings} id="refresh-bookings-btn" className="p-2">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-        ) : bookings.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#9ca3af', padding: 60, fontSize: 14 }}>No bookings found</div>
-        ) : (
-          <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: '#f9fafb' }}>
-                  {['Customer', 'Phone', 'Unit', 'Project', 'Booking Date', 'Amount', 'Agreement', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map(b => (
-                  <tr key={b.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1a1a1a' }}>{b.customer_name}</td>
-                    <td style={{ padding: '10px 14px', color: '#6b7280' }}>{b.customer_phone}</td>
-                    <td style={{ padding: '10px 14px' }}>
-                      {b.unit ? (
-                        <span style={{ background: '#eef2ff', color: '#6366f1', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
-                          {b.unit.unit_number} · {b.unit.bhk_type}
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td style={{ padding: '10px 14px', color: '#374151' }}>
-                      {(b.unit as any)?.tower?.project?.name ?? '—'}
-                    </td>
-                    <td style={{ padding: '10px 14px', color: '#6b7280' }}>{b.booking_date}</td>
-                    <td style={{ padding: '10px 14px', fontWeight: 600, color: '#1a1a1a' }}>{fmt(b.booking_amount)}</td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span style={{ background: (AGR_COLORS[b.agreement_status] ?? '#9ca3af') + '22', color: AGR_COLORS[b.agreement_status] ?? '#9ca3af', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600, textTransform: 'capitalize' }}>
-                        {b.agreement_status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <button id={`view-booking-${b.id}`} onClick={() => openBooking(b)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6366f1', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <Eye style={{ width: 13, height: 13 }} /> View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+
+          {/* DataTable */}
+          <DataTable
+            columns={columns}
+            data={bookings}
+            loading={loading}
+            emptyTitle="No bookings found"
+            emptyDescription="Try adjusting your filters or search query."
+            onRowClick={(row) => openBooking(row)}
+          />
+        </div>
 
       {/* ── New Booking Modal ── */}
       <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="New Unit Booking" size="lg">
@@ -459,65 +496,69 @@ export default function BookingsPage() {
       {/* ── Booking Detail Modal ── */}
       <Modal open={!!viewBooking} onClose={() => setViewBooking(null)} title={`Booking — ${viewBooking?.customer_name ?? ''}`} size="lg">
         {viewBooking && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="flex flex-col gap-4">
             {/* Customer & Unit Metadata */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Customer Column */}
-              <div style={{ background: '#f9fafb', borderRadius: 8, padding: 14, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, borderBottom: '1px solid #e5e7eb', paddingBottom: 4, marginBottom: 4 }}>Customer Profile</span>
-                <div><span style={{ fontSize: 10, color: '#6b7280' }}>Name:</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0', color: '#1a1a1a' }}>{viewBooking.customer_name}</p></div>
-                <div><span style={{ fontSize: 10, color: '#6b7280' }}>Phone:</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0', color: '#1a1a1a' }}>{viewBooking.customer_phone}</p></div>
-                <div><span style={{ fontSize: 10, color: '#6b7280' }}>Email:</span><p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0', color: '#1a1a1a' }}>{viewBooking.customer_email || 'N/A'}</p></div>
+              <div className="bg-[#fcfbf9] rounded-cards p-3.5 border border-stone-surface flex flex-col gap-3">
+                <span className="text-[10px] text-muted-gray uppercase font-bold tracking-wider block border-b border-stone-surface pb-1.5 mb-1.5">Customer Profile</span>
+                <div><span className="text-[10px] text-body-brown font-medium">Name:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{viewBooking.customer_name}</p></div>
+                <div><span className="text-[10px] text-body-brown font-medium">Phone:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{viewBooking.customer_phone}</p></div>
+                <div><span className="text-[10px] text-body-brown font-medium">Email:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{viewBooking.customer_email || 'N/A'}</p></div>
                 {viewBooking.lead && (
-                  <div style={{ borderTop: '1px dashed #e5e7eb', paddingTop: 6, marginTop: 4 }}><span style={{ fontSize: 10, color: '#6b7280' }}>Linked Lead:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.lead.name} ({viewBooking.lead.lead_number})</p></div>
+                  <div className="border-t border-dashed border-stone-border/80 pt-2 mt-2"><span className="text-[10px] text-body-brown font-medium">Linked Lead:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{viewBooking.lead.name} ({viewBooking.lead.lead_number})</p></div>
                 )}
               </div>
 
               {/* Unit Specifications & Booking details */}
-              <div style={{ background: '#f9fafb', borderRadius: 8, padding: 14, border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, borderBottom: '1px solid #e5e7eb', paddingBottom: 4, marginBottom: 4 }}>Unit & Booking Details</span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Project:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{(viewBooking.unit as any)?.tower?.project?.name || 'N/A'}</p></div>
-                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Tower:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{(viewBooking.unit as any)?.tower?.tower_name || 'N/A'}</p></div>
-                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Unit Number:</span><p style={{ fontSize: 12, fontWeight: 700, margin: '2px 0 0', color: '#6366f1' }}>{viewBooking.unit?.unit_number || 'N/A'} ({viewBooking.unit?.bhk_type})</p></div>
-                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Floor:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.unit?.floor_number === 0 ? 'Ground' : `Floor ${viewBooking.unit?.floor_number}`}</p></div>
+              <div className="bg-[#fcfbf9] rounded-cards p-3.5 border border-stone-surface flex flex-col gap-3">
+                <span className="text-[10px] text-muted-gray uppercase font-bold tracking-wider block border-b border-stone-surface pb-1.5 mb-1.5">Unit & Booking Details</span>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div><span className="text-[10px] text-body-brown font-medium">Project:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{(viewBooking.unit as any)?.tower?.project?.name || 'N/A'}</p></div>
+                  <div><span className="text-[10px] text-body-brown font-medium">Tower:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{(viewBooking.unit as any)?.tower?.tower_name || 'N/A'}</p></div>
+                  <div><span className="text-[10px] text-body-brown font-medium">Unit Number:</span><p className="text-xs font-extrabold text-[#6366f1] mt-0.5">{viewBooking.unit?.unit_number || 'N/A'} ({viewBooking.unit?.bhk_type})</p></div>
+                  <div><span className="text-[10px] text-body-brown font-medium">Floor:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{viewBooking.unit?.floor_number === 0 ? 'Ground' : `Floor ${viewBooking.unit?.floor_number}`}</p></div>
                 </div>
-                <div style={{ borderTop: '1px dashed #e5e7eb', paddingTop: 6, marginTop: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Booking Date:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.booking_date}</p></div>
-                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Booking Amount:</span><p style={{ fontSize: 12, fontWeight: 700, margin: '2px 0 0', color: '#1a1a1a' }}>{fmt(viewBooking.booking_amount)}</p></div>
+                <div className="border-t border-dashed border-stone-border/80 pt-2.5 mt-1 grid grid-cols-2 gap-2.5">
+                  <div><span className="text-[10px] text-body-brown font-medium">Booking Date:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{viewBooking.booking_date}</p></div>
+                  <div><span className="text-[10px] text-body-brown font-medium">Booking Amount:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{fmt(viewBooking.booking_amount)}</p></div>
                   <div>
-                    <span style={{ fontSize: 10, color: '#6b7280' }}>Agreement:</span>
-                    <div style={{ marginTop: 2 }}>
-                      <span style={{ background: (AGR_COLORS[viewBooking.agreement_status] ?? '#9ca3af') + '22', color: AGR_COLORS[viewBooking.agreement_status], borderRadius: 4, padding: '2px 8px', fontSize: 10, fontWeight: 700, textTransform: 'capitalize' }}>
+                    <span className="text-[10px] text-body-brown font-medium block mb-1">Agreement:</span>
+                    <div>
+                      <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${
+                        viewBooking.agreement_status === 'registered' ? 'bg-grass-green/10 text-grass-green border-grass-green/20' :
+                        viewBooking.agreement_status === 'signed' ? 'bg-sky-blue/10 text-sky-blue border-sky-blue/20' :
+                        'bg-sun-yellow/10 text-gold border-stone-border'
+                      }`}>
                         {viewBooking.agreement_status}
                       </span>
                     </div>
                   </div>
-                  <div><span style={{ fontSize: 10, color: '#6b7280' }}>Representative:</span><p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{viewBooking.assignedTo?.name || 'Unassigned'}</p></div>
+                  <div><span className="text-[10px] text-body-brown font-medium">Representative:</span><p className="text-xs font-bold text-heading-charcoal mt-0.5">{viewBooking.assignedTo?.name || 'Unassigned'}</p></div>
                 </div>
               </div>
             </div>
 
             {/* Notes / Special Requests */}
             {viewBooking.notes && (
-              <div style={{ background: '#fefdfc', borderRadius: 8, padding: 12, border: '1px solid #fed7aa' }}>
-                <span style={{ fontSize: 10, color: '#c2410c', textTransform: 'uppercase', fontWeight: 700 }}>Notes / Special Requests</span>
-                <p style={{ fontSize: 12, color: '#431407', margin: '4px 0 0', lineHeight: 1.4 }}>{viewBooking.notes}</p>
+              <div className="bg-sun-yellow/10 border border-sun-yellow/30 rounded-cards p-3.5">
+                <span className="text-[10px] text-gold uppercase font-bold tracking-wider">Notes / Special Requests</span>
+                <p className="text-xs text-body-brown mt-1 leading-relaxed">{viewBooking.notes}</p>
               </div>
             )}
 
             {/* Payment summary */}
             {paymentSummary && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: 'Total Due', val: paymentSummary.total_due, color: '#1a1a1a' },
-                  { label: 'Paid', val: paymentSummary.total_paid, color: '#22c55e' },
-                  { label: 'Pending', val: paymentSummary.pending, color: '#f59e0b' },
-                  { label: 'Overdue', val: paymentSummary.overdue, color: '#ef4444' },
+                  { label: 'Total Due', val: paymentSummary.total_due, colorClass: 'text-heading-charcoal' },
+                  { label: 'Paid', val: paymentSummary.total_paid, colorClass: 'text-grass-green' },
+                  { label: 'Pending', val: paymentSummary.pending, colorClass: 'text-gold' },
+                  { label: 'Overdue', val: paymentSummary.overdue, colorClass: 'text-alert-red' },
                 ].map(c => (
-                  <div key={c.label} style={{ background: '#f9fafb', borderRadius: 8, padding: 12 }}>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.label}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: c.color, marginTop: 2 }}>{fmt(c.val)}</div>
+                  <div key={c.label} className="bg-[#fcfbf9] rounded-cards p-3 border border-stone-surface">
+                    <div className="text-[10px] text-muted-gray uppercase font-bold tracking-wider">{c.label}</div>
+                    <div className={`text-sm font-extrabold mt-1 ${c.colorClass}`}>{fmt(c.val)}</div>
                   </div>
                 ))}
               </div>
@@ -525,34 +566,38 @@ export default function BookingsPage() {
 
             {/* Payments list */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Payment Schedule</span>
+              <div className="flex items-center justify-between gap-2 mb-2.5">
+                <span className="text-xs font-bold text-heading-charcoal uppercase tracking-wider">Payment Schedule</span>
                 <Button id="add-payment-btn" size="sm" onClick={() => { setPaymentForm({ payment_type: 'installment', payment_status: 'pending' }); setShowPaymentModal(true) }}>
-                  <Plus style={{ width: 12, height: 12, marginRight: 4 }} /> Add Payment
+                  <Plus className="w-3 h-3 mr-1" /> Add Payment
                 </Button>
               </div>
 
               {loadingPayments ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
-                  <Loader2 style={{ width: 20, height: 20, color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+                <div className="flex justify-center p-6">
+                  <Loader2 className="w-5 h-5 text-brand animate-spin" />
                 </div>
               ) : payments.length === 0 ? (
-                <p style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: 16 }}>No payments recorded</p>
+                <p className="text-xs text-muted-gray text-center p-4">No payments recorded</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="flex flex-col gap-2">
                   {payments.map(p => (
-                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#374151', textTransform: 'capitalize' }}>{p.payment_type}</span>
-                        {p.due_date && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 8 }}>Due: {p.due_date}</span>}
+                    <div key={p.id} className="flex items-center justify-between p-3 bg-white rounded-cards border border-stone-surface hover:bg-stone-surface/30 transition-colors duration-75">
+                      <div className="flex-1">
+                        <span className="text-xs font-bold text-heading-charcoal capitalize">{p.payment_type}</span>
+                        {p.due_date && <span className="text-[10px] text-muted-gray ml-2 font-medium">Due: {p.due_date}</span>}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700 }}>{fmt(p.amount)}</span>
-                        <span style={{ background: (PAY_STATUS_COLORS[p.payment_status] ?? '#9ca3af') + '22', color: PAY_STATUS_COLORS[p.payment_status], borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-heading-charcoal">{fmt(p.amount)}</span>
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${
+                          p.payment_status === 'paid' ? 'bg-grass-green/10 text-grass-green border-grass-green/20' :
+                          p.payment_status === 'overdue' ? 'bg-alert-red/10 text-alert-red border-alert-red/20' :
+                          'bg-sun-yellow/10 text-gold border-stone-border'
+                        }`}>
                           {p.payment_status}
                         </span>
                         {p.payment_status !== 'paid' && (
-                          <button onClick={() => markPaid(p)} style={{ fontSize: 11, color: '#22c55e', background: 'none', border: '1px solid #22c55e', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}>
+                          <button onClick={() => markPaid(p)} className="px-2 py-0.5 rounded border border-grass-green text-grass-green bg-grass-green/5 hover:bg-grass-green/15 text-[10px] font-bold transition-colors cursor-pointer">
                             Mark Paid
                           </button>
                         )}
@@ -568,7 +613,7 @@ export default function BookingsPage() {
 
       {/* ── Add Payment Modal ── */}
       <Modal open={showPaymentModal} onClose={() => setShowPaymentModal(false)} title="Add Payment" size="sm">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="flex flex-col gap-3">
           <Select id="payment-type" label="Payment Type *" value={paymentForm.payment_type ?? ''} onChange={e => setPaymentForm(f => ({ ...f, payment_type: e.target.value as ApiPayment['payment_type'] }))}>
             {['booking','installment','final','registration'].map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
           </Select>
@@ -580,7 +625,7 @@ export default function BookingsPage() {
             <option value="overdue">Overdue</option>
           </Select>
           <Input id="payment-notes" label="Notes" value={paymentForm.notes ?? ''} onChange={e => setPaymentForm(f => ({ ...f, notes: e.target.value }))} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <div className="flex justify-end gap-2 mt-2">
             <Button variant="outline" size="sm" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
             <Button id="save-payment-btn" size="sm" onClick={savePayment}>Save Payment</Button>
           </div>

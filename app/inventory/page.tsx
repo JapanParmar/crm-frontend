@@ -533,25 +533,29 @@ export default function InventoryPage() {
       {/* ── Unit Profile / Status Modal ── */}
       <Modal open={showStatusModal} onClose={() => setShowStatusModal(false)} title={`Unit Profile — ${statusUnit?.unit_number ?? ''}`} size="md">
         {statusUnit && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="flex flex-col gap-4">
             {/* Header specs info */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, background: '#f9fafb', borderRadius: 8, padding: 12, border: '1px solid #e5e7eb' }}>
+            <div className="grid grid-cols-4 gap-3 bg-[#fcfbf9] rounded-cards p-3.5 border border-stone-surface">
               <div>
-                <span style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 600 }}>BHK Type</span>
-                <p style={{ fontSize: 13, fontWeight: 700, margin: '2px 0 0', color: '#1a1a1a' }}>{statusUnit.bhk_type}</p>
+                <span className="text-[10px] text-muted-gray uppercase font-bold tracking-wider">BHK Type</span>
+                <p className="text-xs font-bold text-heading-charcoal mt-1">{statusUnit.bhk_type}</p>
               </div>
               <div>
-                <span style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 600 }}>Floor</span>
-                <p style={{ fontSize: 13, fontWeight: 700, margin: '2px 0 0', color: '#1a1a1a' }}>{statusUnit.floor_number === 0 ? 'Ground' : `Floor ${statusUnit.floor_number}`}</p>
+                <span className="text-[10px] text-muted-gray uppercase font-bold tracking-wider">Floor</span>
+                <p className="text-xs font-bold text-heading-charcoal mt-1">{statusUnit.floor_number === 0 ? 'Ground' : `Floor ${statusUnit.floor_number}`}</p>
               </div>
               <div>
-                <span style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 600 }}>Facing</span>
-                <p style={{ fontSize: 13, fontWeight: 700, margin: '2px 0 0', color: '#1a1a1a' }}>{statusUnit.facing || 'N/A'}</p>
+                <span className="text-[10px] text-muted-gray uppercase font-bold tracking-wider">Facing</span>
+                <p className="text-xs font-bold text-heading-charcoal mt-1">{statusUnit.facing || 'N/A'}</p>
               </div>
               <div>
-                <span style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 600 }}>Status</span>
-                <div style={{ marginTop: 2 }}>
-                  <span style={{ background: (STATUS_COLORS[statusUnit.status] ?? '#9ca3af') + '22', color: STATUS_COLORS[statusUnit.status], borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+                <span className="text-[10px] text-muted-gray uppercase font-bold tracking-wider block mb-1">Status</span>
+                <div>
+                  <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border ${
+                    statusUnit.status === 'available' ? 'bg-grass-green/10 text-grass-green border-grass-green/20' :
+                    statusUnit.status === 'sold' ? 'bg-alert-red/10 text-alert-red border-alert-red/20' :
+                    'bg-sun-yellow/10 text-gold border-stone-border'
+                  }`}>
                     {STATUS_LABELS[statusUnit.status]}
                   </span>
                 </div>
@@ -559,58 +563,58 @@ export default function InventoryPage() {
             </div>
 
             {/* Area Details */}
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
-              <span style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, display: 'block', borderBottom: '1px solid #f3f4f6', paddingBottom: 4, marginBottom: 8 }}>Area Details</span>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <div className="border border-stone-surface rounded-cards p-3.5 bg-white">
+              <span className="text-[10px] text-muted-gray uppercase font-bold tracking-wider block border-b border-stone-surface pb-1.5 mb-2.5">Area Details</span>
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <span style={{ fontSize: 10, color: '#6b7280' }}>Carpet Area</span>
-                  <p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{statusUnit.carpet_area ? `${statusUnit.carpet_area} sqft` : 'N/A'}</p>
+                  <span className="text-[10px] text-body-brown font-medium">Carpet Area</span>
+                  <p className="text-xs font-bold text-heading-charcoal mt-0.5">{statusUnit.carpet_area ? `${statusUnit.carpet_area} sqft` : 'N/A'}</p>
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, color: '#6b7280' }}>Built-up Area</span>
-                  <p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{statusUnit.built_up_area ? `${statusUnit.built_up_area} sqft` : 'N/A'}</p>
+                  <span className="text-[10px] text-body-brown font-medium">Built-up Area</span>
+                  <p className="text-xs font-bold text-heading-charcoal mt-0.5">{statusUnit.built_up_area ? `${statusUnit.built_up_area} sqft` : 'N/A'}</p>
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, color: '#6b7280' }}>Super Built-up</span>
-                  <p style={{ fontSize: 12, fontWeight: 600, margin: '2px 0 0' }}>{statusUnit.super_built_up_area ? `${statusUnit.super_built_up_area} sqft` : 'N/A'}</p>
+                  <span className="text-[10px] text-body-brown font-medium">Super Built-up</span>
+                  <p className="text-xs font-bold text-heading-charcoal mt-0.5">{statusUnit.super_built_up_area ? `${statusUnit.super_built_up_area} sqft` : 'N/A'}</p>
                 </div>
               </div>
             </div>
 
             {/* Pricing & Financial Breakdown */}
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, background: '#fafaf9' }}>
-              <span style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, display: 'block', borderBottom: '1px solid #e5e7eb', paddingBottom: 4, marginBottom: 8 }}>Pricing & Financials</span>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, rowGap: 8 }}>
+            <div className="border border-stone-surface rounded-cards p-3.5 bg-[#fcfbf9]">
+              <span className="text-[10px] text-muted-gray uppercase font-bold tracking-wider block border-b border-stone-surface pb-1.5 mb-2.5">Pricing & Financials</span>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span style={{ fontSize: 10, color: '#6b7280' }}>Base Price:</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 6 }}>{statusUnit.base_price ? fmt(statusUnit.base_price) : 'N/A'}</span>
+                  <span className="text-[10px] text-body-brown font-medium">Base Price:</span>
+                  <span className="text-xs font-bold text-heading-charcoal ml-2">{statusUnit.base_price ? fmt(statusUnit.base_price) : 'N/A'}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, color: '#6b7280' }}>Price per Sqft:</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 6 }}>{statusUnit.price_per_sqft ? fmt(statusUnit.price_per_sqft) : 'N/A'}</span>
+                  <span className="text-[10px] text-body-brown font-medium">Price per Sqft:</span>
+                  <span className="text-xs font-bold text-heading-charcoal ml-2">{statusUnit.price_per_sqft ? fmt(statusUnit.price_per_sqft) : 'N/A'}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, color: '#6b7280' }}>PLC Charges:</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 6 }}>{statusUnit.plc_charges ? fmt(statusUnit.plc_charges) : 'N/A'}</span>
+                  <span className="text-[10px] text-body-brown font-medium">PLC Charges:</span>
+                  <span className="text-xs font-bold text-heading-charcoal ml-2">{statusUnit.plc_charges ? fmt(statusUnit.plc_charges) : 'N/A'}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, color: '#6b7280' }}>Parking Charges:</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 6 }}>{statusUnit.parking_charges ? fmt(statusUnit.parking_charges) : 'N/A'}</span>
+                  <span className="text-[10px] text-body-brown font-medium">Parking Charges:</span>
+                  <span className="text-xs font-bold text-heading-charcoal ml-2">{statusUnit.parking_charges ? fmt(statusUnit.parking_charges) : 'N/A'}</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, color: '#6b7280' }}>GST Amount:</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 6 }}>{statusUnit.gst_amount ? fmt(statusUnit.gst_amount) : 'N/A'}</span>
+                  <span className="text-[10px] text-body-brown font-medium">GST Amount:</span>
+                  <span className="text-xs font-bold text-heading-charcoal ml-2">{statusUnit.gst_amount ? fmt(statusUnit.gst_amount) : 'N/A'}</span>
                 </div>
-                <div style={{ borderTop: '1px dashed #e5e7eb', gridColumn: 'span 2', paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1a1a' }}>Total Final Value:</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: '#6366f1' }}>{statusUnit.total_price ? fmt(statusUnit.total_price) : 'N/A'}</span>
+                <div className="border-t border-dashed border-stone-border/80 col-span-2 pt-2.5 flex items-center justify-between">
+                  <span className="text-xs font-bold text-heading-charcoal">Total Final Value:</span>
+                  <span className="text-sm font-extrabold text-[#6366f1]">{statusUnit.total_price ? fmt(statusUnit.total_price) : 'N/A'}</span>
                 </div>
               </div>
             </div>
 
             {/* Quick Status Change */}
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-              <div style={{ flex: 1 }}>
+            <div className="border border-stone-surface rounded-cards p-3.5 bg-white flex items-end gap-3">
+              <div className="flex-1">
                 <Select id="change-status-select" label="Update Unit Status" value={newStatus} onChange={e => setNewStatus(e.target.value)}>
                   {UNIT_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                 </Select>
@@ -619,7 +623,7 @@ export default function InventoryPage() {
             </div>
 
             {/* General Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
+            <div className="flex items-center justify-between gap-2 border-t border-stone-surface pt-3.5">
               <Button
                 id="edit-unit-specs-btn"
                 variant="outline"
@@ -629,12 +633,12 @@ export default function InventoryPage() {
                   openEditUnit(statusUnit)
                 }}
               >
-                <Edit2 style={{ width: 13, height: 13, marginRight: 4 }} /> Edit Specifications
+                <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit Specifications
               </Button>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="flex gap-2">
                 {['available', 'reserved', 'hold'].includes(statusUnit.status) && (
                   <Button id="book-unit-from-status-btn" size="sm" onClick={startUnitBooking}>
-                    <BookOpen style={{ width: 13, height: 13, marginRight: 4 }} /> Book Unit
+                    <BookOpen className="w-3.5 h-3.5 mr-1" /> Book Unit
                   </Button>
                 )}
                 <Button variant="outline" size="sm" onClick={() => setShowStatusModal(false)}>Close</Button>

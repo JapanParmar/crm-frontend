@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { AppHeader } from '@/components/layout/AppHeader'
@@ -15,6 +15,8 @@ import { dashboardApi, leadsApi, usersApi, activityApi } from '@/lib/api'
 import type { AdminStats, EmployeeStats, TodayScheduleItem, TeamMemberStat, ApiLead } from '@/lib/api'
 import { LEAD_SOURCE_LABELS } from '@/lib/constants'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { createColumnHelper } from '@tanstack/react-table'
+import { DataTable } from '@/components/ui/data-table'
 import {
   AlertCircle,
   Clock,
@@ -135,6 +137,9 @@ function SlaCountdown({ expiresAt }: { expiresAt: string }) {
   )
 }
 
+const leadColumnHelper = createColumnHelper<ApiLead>()
+const teamColumnHelper = createColumnHelper<TeamMemberStat>()
+
 export default function DashboardPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -236,6 +241,123 @@ export default function DashboardPage() {
   const todaySchedule = dashboardData?.today_schedule ?? []
   const team = dashboardData?.team ?? []
   const recentLeads = recentLeadsData?.data ?? []
+
+  const recentLeadsColumns = useMemo(() => [
+    leadColumnHelper.accessor('name', {
+      header: 'Lead',
+      cell: info => {
+        const lead = info.row.original
+        return (
+          <div className="flex items-center gap-2">
+            <Avatar name={lead.name} size="xs" />
+            <div>
+              <Link href={`/leads/${lead.id}`} className="font-bold text-heading-charcoal hover:text-ink-black hover:underline" onClick={e => e.stopPropagation()}>
+                {lead.name}
+              </Link>
+              <p className="text-[10px] text-body-brown mt-0.5">{lead.phone}</p>
+            </div>
+          </div>
+        )
+      }
+    }),
+    leadColumnHelper.accessor('source', {
+      header: 'Source',
+      cell: info => <LeadSourceBadge source={info.getValue() as any} />
+    }),
+    leadColumnHelper.accessor('status', {
+      header: 'Status',
+      cell: info => <LeadStatusBadge status={info.getValue() as any} dot />
+    }),
+    leadColumnHelper.accessor('score', {
+      header: 'Score',
+      cell: info => <LeadScore score={info.getValue()} />
+    }),
+    leadColumnHelper.accessor('budget_max', {
+      header: 'Budget Max',
+      cell: info => {
+        const val = info.getValue()
+        return <span className="font-semibold text-heading-charcoal">{val ? formatCurrency(val) : '—'}</span>
+      }
+    })
+  ], [])
+
+  const teamColumns = useMemo(() => [
+    teamColumnHelper.accessor('name', {
+      header: 'Team Member',
+      cell: info => {
+        const member = info.row.original
+        return (
+          <div className="flex items-center gap-2">
+            <Avatar name={member.name} size="xs" />
+            <div>
+              <p className="font-bold text-heading-charcoal">{member.name}</p>
+              <p className="text-[10px] text-muted-gray mt-0.5">{member.email}</p>
+            </div>
+          </div>
+        )
+      }
+    }),
+    teamColumnHelper.accessor('assigned_leads', {
+      header: 'Lead Share (Workload)',
+      cell: info => {
+        const member = info.row.original
+        const maxLeadsInTeam = Math.max(...team.map(m => m.assigned_leads), 1)
+        const workloadPercentage = Math.round((member.assigned_leads / maxLeadsInTeam) * 100)
+        return (
+          <div className="space-y-1 w-[160px]">
+            <div className="flex justify-between text-[10px] font-bold text-body-brown">
+              <span>{member.assigned_leads} leads</span>
+              <span>{workloadPercentage}%</span>
+            </div>
+            <div className="h-1.5 bg-stone-surface border border-stone-border/60 rounded-full overflow-hidden">
+              <div 
+                className="h-full rounded-full bg-ember-orange" 
+                style={{ width: `${workloadPercentage}%` }} 
+              />
+            </div>
+          </div>
+        )
+      }
+    }),
+    teamColumnHelper.accessor('closed_deals', {
+      header: 'Closed Won',
+      cell: info => <span className="font-bold text-heading-charcoal text-base">{info.getValue()}</span>
+    }),
+    teamColumnHelper.accessor('conversion_rate', {
+      header: 'Conversion',
+      cell: info => {
+        const rate = info.getValue()
+        const convBadge = rate >= 15 
+          ? 'bg-grass-green/10 text-grass-green border-grass-green/20' 
+          : rate >= 5 
+          ? 'bg-sun-yellow/10 text-gold border-sun-yellow/30' 
+          : 'bg-alert-red/10 text-alert-red border-alert-red/20'
+        return (
+          <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-bold ${convBadge}`}>
+            {rate}%
+          </span>
+        )
+      }
+    }),
+    teamColumnHelper.accessor('pending_follow_ups', {
+      header: 'Pending Tasks',
+      cell: info => <span className="font-bold text-body-brown">{info.getValue()}</span>
+    }),
+    teamColumnHelper.accessor('pending_follow_ups', {
+      id: 'status',
+      header: 'Status',
+      cell: info => {
+        const isHealthy = info.getValue() <= 5
+        return (
+          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+            isHealthy ? 'bg-grass-green/10 text-grass-green' : 'bg-alert-red/10 text-alert-red'
+          }`}>
+            {isHealthy ? '✓ Active' : '⚠️ Overloaded'}
+          </span>
+        )
+      }
+    })
+  ], [team])
 
   // Type-safe access helpers
   const adminStats = isAdmin ? (stats as AdminStats | undefined) : undefined
@@ -864,48 +986,14 @@ export default function DashboardPage() {
                   </Link>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-[#fcfbf9] border-b border-stone-surface">
-                        <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Lead</th>
-                        <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Source</th>
-                        <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Status</th>
-                        <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Score</th>
-                        <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Budget Max</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-surface">
-                      {recentLeads.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="px-3 py-8 text-center text-muted-gray">No leads yet</td>
-                        </tr>
-                      ) : (
-                        recentLeads.map((lead) => (
-                          <tr key={lead.id} className="hover:bg-[#fcfbf9] cursor-pointer group transition-colors duration-75" onClick={() => router.push(`/leads/${lead.id}`)}>
-                            <td className="px-3 py-3">
-                              <div className="flex items-center gap-2">
-                                <Avatar name={lead.name} size="xs" />
-                                <div>
-                                  <Link href={`/leads/${lead.id}`} className="font-bold text-heading-charcoal hover:text-ink-black hover:underline">
-                                    {lead.name}
-                                  </Link>
-                                  <p className="text-[10px] text-body-brown mt-0.5">{lead.phone}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-3 py-3"><LeadSourceBadge source={lead.source as never} /></td>
-                            <td className="px-3 py-3"><LeadStatusBadge status={lead.status as never} dot /></td>
-                            <td className="px-3 py-3"><LeadScore score={lead.score} /></td>
-                            <td className="px-3 py-3 font-semibold text-heading-charcoal">
-                              {lead.budget_max ? formatCurrency(lead.budget_max) : '—'}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  columns={recentLeadsColumns}
+                  data={recentLeads}
+                  loading={dashboardLoading}
+                  emptyTitle="No leads yet"
+                  emptyDescription="Try adding some leads to get started."
+                  onRowClick={(row) => router.push(`/leads/${row.id}`)}
+                />
               </section>
 
               {/* Team Performance & Workload Analytics for Admin / Superadmin */}
@@ -918,83 +1006,14 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="bg-[#fcfbf9] border-b border-stone-surface">
-                          <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Team Member</th>
-                          <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Lead Share (Workload)</th>
-                          <th className="px-3 py-2 text-center font-bold text-heading-charcoal">Closed Won</th>
-                          <th className="px-3 py-2 text-center font-bold text-heading-charcoal">Conversion</th>
-                          <th className="px-3 py-2 text-center font-bold text-heading-charcoal">Pending Tasks</th>
-                          <th className="px-3 py-2 text-right font-bold text-heading-charcoal">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-stone-surface">
-                        {team.map((member: TeamMemberStat) => {
-                          const maxLeadsInTeam = Math.max(...team.map(m => m.assigned_leads), 1)
-                          const workloadPercentage = Math.round((member.assigned_leads / maxLeadsInTeam) * 100)
-                          
-                          // Conversion status styling
-                          const convRate = member.conversion_rate
-                          const convBadge = convRate >= 15 
-                            ? 'bg-grass-green/10 text-grass-green border-grass-green/20' 
-                            : convRate >= 5 
-                            ? 'bg-sun-yellow/10 text-gold border-sun-yellow/30' 
-                            : 'bg-alert-red/10 text-alert-red border-alert-red/20'
-
-                          // Task status health
-                          const isHealthy = member.pending_follow_ups <= 5
-                          
-                          return (
-                            <tr key={member.id} className="hover:bg-[#fcfbf9] transition-colors duration-75">
-                              <td className="px-3 py-3">
-                                <div className="flex items-center gap-2">
-                                  <Avatar name={member.name} size="xs" />
-                                  <div>
-                                    <p className="font-bold text-heading-charcoal">{member.name}</p>
-                                    <p className="text-[10px] text-muted-gray mt-0.5">{member.email}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-3 w-[160px]">
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-[10px] font-bold text-body-brown">
-                                    <span>{member.assigned_leads} leads</span>
-                                    <span>{workloadPercentage}%</span>
-                                  </div>
-                                  <div className="h-1.5 bg-stone-surface border border-stone-border/60 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full rounded-full bg-ember-orange" 
-                                      style={{ width: `${workloadPercentage}%` }} 
-                                    />
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-3 text-center font-bold text-heading-charcoal text-base">
-                                {member.closed_deals}
-                              </td>
-                              <td className="px-3 py-3 text-center">
-                                <span className={`inline-flex px-2 py-0.5 rounded-full border text-[10px] font-bold ${convBadge}`}>
-                                  {convRate}%
-                                </span>
-                              </td>
-                              <td className="px-3 py-3 text-center font-bold text-body-brown">
-                                {member.pending_follow_ups}
-                              </td>
-                              <td className="px-3 py-3 text-right">
-                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                  isHealthy ? 'bg-grass-green/10 text-grass-green' : 'bg-alert-red/10 text-alert-red'
-                                }`}>
-                                  {isHealthy ? '✓ Active' : '⚠️ Overloaded'}
-                                </span>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <DataTable
+                    columns={teamColumns}
+                    data={team}
+                    loading={dashboardLoading}
+                    emptyTitle="No team members found"
+                    emptyDescription="Try adding some team members to get started."
+                    onRowClick={(row) => router.push(`/team`)}
+                  />
                 </section>
               )}
             </div>

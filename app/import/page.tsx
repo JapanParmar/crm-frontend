@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useMemo } from 'react'
+import React, { useState, useRef, useMemo, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { AppHeader } from '@/components/layout/AppHeader'
@@ -28,6 +28,8 @@ import { Button } from '@/components/ui/button'
 import { leadsApi } from '@/lib/api'
 import { LeadSourceBadge } from '@/components/leads/LeadBadges'
 import * as XLSX from 'xlsx'
+import { createColumnHelper } from '@tanstack/react-table'
+import { DataTable } from '@/components/ui/data-table'
 import { 
   detectProvider, 
   mapRow, 
@@ -87,6 +89,7 @@ const validateRecord = (lead: any) => {
     errors,
   }
 }
+const columnHelper = createColumnHelper<ParsedLead>()
 
 export default function ImportPage() {
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
@@ -106,6 +109,72 @@ export default function ImportPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'valid' | 'invalid'>('all')
   const [failedLeads, setFailedLeads] = useState<{ lead: ParsedLead; reason: string }[]>([])
+
+  const columns = useMemo(() => [
+    columnHelper.accessor('name', {
+      header: 'Name',
+      cell: info => {
+        const val = info.getValue()
+        return val ? <span className="font-semibold text-heading-charcoal">{val}</span> : <span className="text-alert-red italic font-medium">Missing Name</span>
+      }
+    }),
+    columnHelper.accessor('phone', {
+      header: 'Contact Details',
+      cell: info => {
+        const lead = info.row.original
+        return (
+          <div className="text-body-brown">
+            <div className="font-mono">{lead.phone || <span className="text-alert-red italic font-medium">Missing Phone</span>}</div>
+            {lead.email && <div className="text-[10px] text-muted-gray mt-0.5">{lead.email}</div>}
+          </div>
+        )
+      }
+    }),
+    columnHelper.accessor('source', {
+      header: 'Portal / Source',
+      cell: info => {
+        const lead = info.row.original
+        return (
+          <div>
+            <LeadSourceBadge source={lead.source as any} />
+            {lead.lead_date && <div className="text-[10px] text-muted-gray mt-0.5">Enquiry: {lead.lead_date}</div>}
+          </div>
+        )
+      }
+    }),
+    columnHelper.accessor('project_interest', {
+      header: 'Interest Details',
+      cell: info => {
+        const lead = info.row.original
+        return (
+          <div className="text-body-brown">
+            <div className="font-semibold text-heading-charcoal">
+              {lead.project_interest || lead.property_type || 'Unspecified Interest'}
+              {lead.bhk_preference && ` (${lead.bhk_preference})`}
+            </div>
+            <div className="text-[10px] text-muted-gray mt-0.5">
+              {[lead.locality, lead.city].filter(Boolean).join(', ') || 'No location info'}
+            </div>
+          </div>
+        )
+      }
+    }),
+    columnHelper.accessor('isValid', {
+      header: 'Validation Status',
+      cell: info => {
+        const isValid = info.getValue()
+        return isValid ? (
+          <span className="inline-flex items-center gap-1 text-[10px] text-grass-green font-bold bg-grass-green/10 border border-grass-green/20 px-2 py-0.5 rounded-badges">
+            <Check className="w-3.5 h-3.5" /> Valid Record
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-[10px] text-alert-red font-bold bg-alert-red/10 border border-alert-red/20 px-2 py-0.5 rounded-badges">
+            <X className="w-3.5 h-3.5" /> Errors Detected
+          </span>
+        )
+      }
+    })
+  ], [])
 
   const activeProvider: ProviderInfo = useMemo(() => {
     const providerId = selectedFormat === 'auto' ? detectedFormat : selectedFormat
@@ -854,78 +923,15 @@ export default function ImportPage() {
               )}
 
               {/* LIST TABLE */}
-              <div className="bg-white border border-stone-surface rounded-cards overflow-hidden shadow-sm">
-                <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-[#fcfbf9] border-b border-stone-surface sticky top-0 z-10">
-                        <th className="px-4 py-2.5 text-left font-bold text-heading-charcoal bg-[#fcfbf9]">Name</th>
-                        <th className="px-4 py-2.5 text-left font-bold text-heading-charcoal bg-[#fcfbf9]">Contact Details</th>
-                        <th className="px-4 py-2.5 text-left font-bold text-heading-charcoal bg-[#fcfbf9]">Portal / Source</th>
-                        <th className="px-4 py-2.5 text-left font-bold text-heading-charcoal bg-[#fcfbf9]">Interest Details</th>
-                        <th className="px-4 py-2.5 text-right font-bold text-heading-charcoal bg-[#fcfbf9]">Validation Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-surface">
-                      {filteredLeads.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="px-4 py-10 text-center text-muted-gray font-medium">
-                            No records matching the filter settings
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredLeads.map((lead, idx) => (
-                          <React.Fragment key={idx}>
-                            <tr className={lead.isValid ? "hover:bg-[#fcfbf9] transition-colors" : "bg-alert-red/5 hover:bg-alert-red/10"}>
-                              <td className="px-4 py-3 font-semibold text-heading-charcoal">
-                                {lead.name || <span className="text-alert-red italic font-medium">Missing Name</span>}
-                              </td>
-                              <td className="px-4 py-3 text-body-brown">
-                                <div className="font-mono">{lead.phone || <span className="text-alert-red italic font-medium">Missing Phone</span>}</div>
-                                {lead.email && <div className="text-[10px] text-muted-gray mt-0.5">{lead.email}</div>}
-                              </td>
-                              <td className="px-4 py-3">
-                                <LeadSourceBadge source={lead.source as any} />
-                                {lead.lead_date && <div className="text-[10px] text-muted-gray mt-0.5">Enquiry: {lead.lead_date}</div>}
-                              </td>
-                              <td className="px-4 py-3 text-body-brown">
-                                <div className="font-semibold text-heading-charcoal">
-                                  {lead.project_interest || lead.property_type || 'Unspecified Interest'}
-                                  {lead.bhk_preference && ` (${lead.bhk_preference})`}
-                                </div>
-                                <div className="text-[10px] text-muted-gray mt-0.5">
-                                  {[lead.locality, lead.city].filter(Boolean).join(', ') || 'No location info'}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                {lead.isValid ? (
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-grass-green font-bold bg-grass-green/10 border border-grass-green/20 px-2 py-0.5 rounded-badges">
-                                    <Check className="w-3 h-3" /> Valid Record
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-alert-red font-bold bg-alert-red/10 border border-alert-red/20 px-2 py-0.5 rounded-badges">
-                                    <X className="w-3 h-3" /> Errors Detected
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                            {!lead.isValid && (
-                              <tr className="bg-alert-red/5">
-                                <td colSpan={5} className="px-4 pb-3 pt-0 text-[10px] text-alert-red font-medium">
-                                  <ul className="list-disc list-inside space-y-0.5 pl-2">
-                                    {lead.errors.map((err, errIdx) => (
-                                      <li key={errIdx}>{err}</li>
-                                    ))}
-                                  </ul>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="bg-white border border-stone-surface rounded-cards overflow-hidden shadow-sm p-4">
+                <DataTable
+                  columns={columns}
+                  data={filteredLeads}
+                  loading={parsing}
+                  emptyTitle="No records found"
+                  emptyDescription="Try adjusting your filters or search query."
+                  rowClassName={(row) => row.isValid ? "hover:bg-[#fcfbf9] transition-colors" : "bg-alert-red/5 hover:bg-alert-red/10"}
+                />
               </div>
             </div>
           )}

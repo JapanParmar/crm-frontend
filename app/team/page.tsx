@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { AppHeader } from '@/components/layout/AppHeader'
@@ -16,6 +16,10 @@ import { formatDate } from '@/lib/utils'
 import { UserPlus, TrendingUp, Users, CheckCircle2, Clock, Edit, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { createColumnHelper } from '@tanstack/react-table'
+import { DataTable } from '@/components/ui/data-table'
+
+const columnHelper = createColumnHelper<ApiUserWithStats>()
 
 export default function TeamPage() {
   const { addLeadOpen, setAddLeadOpen } = useAppStore()
@@ -59,6 +63,91 @@ export default function TeamPage() {
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage)
+
+  const maxLeadsInTeam = useMemo(() => {
+    return Math.max(...filteredUsers.map(m => m.assigned_leads), 1)
+  }, [filteredUsers])
+
+  const columns = useMemo(() => [
+    columnHelper.accessor('name', {
+      header: 'Team Member',
+      cell: info => {
+        const member = info.row.original
+        return (
+          <div className="flex items-center gap-2">
+            <Avatar name={member.name} size="xs" />
+            <div>
+              <p className="font-bold text-heading-charcoal">{member.name}</p>
+              <p className="text-[10px] text-muted-gray mt-0.5">{member.email}</p>
+            </div>
+          </div>
+        )
+      }
+    }),
+    columnHelper.accessor('assigned_leads', {
+      header: 'Lead Share (Workload)',
+      cell: info => {
+        const member = info.row.original
+        const workloadPercentage = Math.round((member.assigned_leads / maxLeadsInTeam) * 100)
+        return (
+          <div className="space-y-1 w-[160px]">
+            <div className="flex justify-between text-[10px] font-bold text-body-brown">
+              <span>{member.assigned_leads} leads</span>
+              <span>{workloadPercentage}%</span>
+            </div>
+            <div className="h-1.5 bg-stone-surface border border-stone-border/60 rounded-full overflow-hidden">
+              <div 
+                className="h-full rounded-full bg-ember-orange" 
+                style={{ width: `${workloadPercentage}%` }} 
+              />
+            </div>
+          </div>
+        )
+      }
+    }),
+    columnHelper.accessor('closed_deals', {
+      header: 'Closed Won',
+      cell: info => <span className="font-bold text-heading-charcoal text-base">{info.getValue()}</span>
+    }),
+    columnHelper.accessor(row => {
+      const leads = row.assigned_leads
+      return leads > 0 ? Math.round((row.closed_deals / leads) * 100) : 0
+    }, {
+      id: 'conversion',
+      header: 'Conversion',
+      cell: info => {
+        const rate = info.getValue()
+        const convBadge = rate >= 15 
+          ? 'bg-grass-green/10 text-grass-green border-grass-green/20' 
+          : rate >= 5 
+          ? 'bg-sun-yellow/10 text-gold border-sun-yellow/30' 
+          : 'bg-alert-red/10 text-alert-red border-alert-red/20'
+        return (
+          <span className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-bold ${convBadge}`}>
+            {rate}%
+          </span>
+        )
+      }
+    }),
+    columnHelper.accessor('pending_follow_ups', {
+      header: 'Pending Tasks',
+      cell: info => <span className="font-bold text-body-brown">{info.getValue()}</span>
+    }),
+    columnHelper.accessor('pending_follow_ups', {
+      id: 'status',
+      header: 'Status',
+      cell: info => {
+        const isHealthy = info.getValue() <= 5
+        return (
+          <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+            isHealthy ? 'bg-grass-green/10 text-grass-green' : 'bg-alert-red/10 text-alert-red'
+          }`}>
+            {isHealthy ? '✓ Active' : '⚠️ Overloaded'}
+          </span>
+        )
+      }
+    })
+  ], [maxLeadsInTeam])
 
   const handleEdit = (user: ApiUserWithStats) => {
     setSelectedMember(user)
@@ -191,87 +280,14 @@ export default function TeamPage() {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-[#fcfbf9] border-b border-stone-surface">
-                        <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Team Member</th>
-                        <th className="px-3 py-2 text-left font-bold text-heading-charcoal">Lead Share (Workload)</th>
-                        <th className="px-3 py-2 text-center font-bold text-heading-charcoal">Closed Won</th>
-                        <th className="px-3 py-2 text-center font-bold text-heading-charcoal">Conversion</th>
-                        <th className="px-3 py-2 text-center font-bold text-heading-charcoal">Pending Tasks</th>
-                        <th className="px-3 py-2 text-right font-bold text-heading-charcoal">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-surface">
-                      {paginatedUsers.map((member: ApiUserWithStats) => {
-                        const maxLeadsInTeam = Math.max(...filteredUsers.map(m => m.assigned_leads), 1)
-                        const workloadPercentage = Math.round((member.assigned_leads / maxLeadsInTeam) * 100)
-                        
-                        // Calculate conversion rate
-                        const conversionRate = member.assigned_leads > 0
-                          ? Math.round((member.closed_deals / member.assigned_leads) * 100)
-                          : 0
-
-                        // Conversion status styling
-                        const convBadge = conversionRate >= 15 
-                          ? 'bg-grass-green/10 text-grass-green border-grass-green/20' 
-                          : conversionRate >= 5 
-                          ? 'bg-sun-yellow/10 text-gold border-sun-yellow/30' 
-                          : 'bg-alert-red/10 text-alert-red border-alert-red/20'
-
-                        // Task status health
-                        const isHealthy = member.pending_follow_ups <= 5
-                        
-                        return (
-                          <tr key={member.id} className="hover:bg-[#fcfbf9] transition-colors duration-75">
-                            <td className="px-3 py-3">
-                              <div className="flex items-center gap-2">
-                                <Avatar name={member.name} size="xs" />
-                                <div>
-                                  <p className="font-bold text-heading-charcoal">{member.name}</p>
-                                  <p className="text-[10px] text-muted-gray mt-0.5">{member.email}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 w-[160px]">
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-body-brown">
-                                  <span>{member.assigned_leads} leads</span>
-                                  <span>{workloadPercentage}%</span>
-                                </div>
-                                <div className="h-1.5 bg-stone-surface border border-stone-border/60 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full rounded-full bg-ember-orange" 
-                                    style={{ width: `${workloadPercentage}%` }} 
-                                  />
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 text-center font-bold text-heading-charcoal text-base">
-                              {member.closed_deals}
-                            </td>
-                            <td className="px-3 py-3 text-center">
-                              <span className={`inline-flex px-2 py-0.5 rounded-full border text-[10px] font-bold ${convBadge}`}>
-                                {conversionRate}%
-                              </span>
-                            </td>
-                            <td className="px-3 py-3 text-center font-bold text-body-brown">
-                              {member.pending_follow_ups}
-                            </td>
-                            <td className="px-3 py-3 text-right">
-                              <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                isHealthy ? 'bg-grass-green/10 text-grass-green' : 'bg-alert-red/10 text-alert-red'
-                              }`}>
-                                {isHealthy ? '✓ Active' : '⚠️ Overloaded'}
-                              </span>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  columns={columns}
+                  data={paginatedUsers}
+                  loading={isLoading}
+                  emptyTitle="No team members found"
+                  emptyDescription="Try adjusting filters or search criteria."
+                  onRowClick={(row) => handleEdit(row)}
+                />
               </section>
 
               {/* Individual Team Member Cards */}
