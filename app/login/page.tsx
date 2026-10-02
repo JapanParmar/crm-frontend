@@ -60,7 +60,7 @@ export default function LoginPage() {
               <Building2 className="w-4 h-4 text-[#121212]" />
             </div>
             <div>
-              <p className="text-white text-sm font-extrabold tracking-tight">BRICKroots</p>
+              <p className="text-white text-sm font-extrabold tracking-tight">Apex CRM</p>
               <p className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>Enterprise CRM</p>
             </div>
           </div>
@@ -108,7 +108,7 @@ export default function LoginPage() {
             >
               <Building2 className="w-4 h-4 text-white" />
             </div>
-            <p className="text-sm font-extrabold tracking-tight text-ink-black">BRICKroots CRM</p>
+            <p className="text-sm font-extrabold tracking-tight text-ink-black">Apex CRM</p>
           </div>
 
           <h2 className="text-2xl font-bold text-heading-charcoal mb-1 tracking-tight">Sign in</h2>

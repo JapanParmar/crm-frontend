@@ -33,8 +33,8 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | BRICKroots CRM',
-    default: 'BRICKroots CRM — Realty Beyond Imagination',
+    template: '%s | Apex CRM',
+    default: 'Apex CRM — Realty Beyond Imagination',
   },
   description: 'Enterprise real estate CRM for managing property leads, follow-ups, site visits, and sales pipeline.',
   keywords: ['real estate CRM', 'property leads', 'sales CRM', 'lead management'],

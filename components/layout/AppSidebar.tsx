@@ -135,7 +135,7 @@ export function AppSidebar() {
             <Building2 className="w-4 h-4 text-ink-black" />
           </div>
           <div className={cn('flex flex-col min-w-0', sidebarCollapsed && 'md:hidden')}>
-            <span className="text-ink-black text-sm font-extrabold tracking-tight leading-tight truncate">BRICKroots</span>
+            <span className="text-ink-black text-sm font-extrabold tracking-tight leading-tight truncate">Apex CRM</span>
             <span className="text-[10px] leading-tight font-medium" style={{ color: 'var(--color-body-brown)' }}>Enterprise</span>
           </div>
         </div>

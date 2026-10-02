@@ -257,7 +257,7 @@ export default function ImportPage() {
         'Notes': 'Needs home loan support'
       }]
     } else {
-      filename = 'brickroots_standard_template.xlsx'
+      filename = 'standard_leads_template.xlsx'
       data = [{
         'Lead Date': '2026-07-08',
         'Source': 'magicbricks',
@@ -663,7 +663,7 @@ export default function ImportPage() {
                     <option value="magicbricks_project">MagicBricks Project Portal Sheet</option>
                     <option value="99acres">99acres Leads Portal Sheet</option>
                     <option value="housing">Housing.com Leads Portal Sheet</option>
-                    <option value="standard">Brickroots Standard Leads Template</option>
+                    <option value="standard">Standard Leads Template</option>
                     <option value="generic">Generic Name & Phone Spreadsheet</option>
                   </select>
                 </div>

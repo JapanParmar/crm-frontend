@@ -15,7 +15,7 @@ export const PROVIDERS: Record<LeadProvider, ProviderInfo> = {
   magicbricks_project: { id: 'magicbricks_project', label: 'MagicBricks Project', source: 'magicbricks', color: '#FF9800', description: 'Project enquiry leads from MagicBricks portal' },
   '99acres': { id: '99acres', label: '99Acres', source: '99acres', color: '#4CAF50', description: 'Leads from 99acres property portal' },
   housing: { id: 'housing', label: 'Housing.com', source: 'housing', color: '#2196F3', description: 'Leads from Housing.com portal' },
-  standard: { id: 'standard', label: 'Brickroots Standard', source: 'other', color: '#9C27B0', description: 'Standardized CRM format with Lead Date, Source, Customer Name, Mobile...' },
+  standard: { id: 'standard', label: 'Standard Lead Format', source: 'other', color: '#9C27B0', description: 'Standardized CRM format with Lead Date, Source, Customer Name, Mobile...' },
   generic: { id: 'generic', label: 'Generic CSV/Excel', source: 'other', color: '#607D8B', description: 'Any file with at least Name and Phone columns' },
 }
 
@@ -34,7 +34,7 @@ export function detectProvider(headers: string[]): LeadProvider {
   // Housing: has "servicetype" and "sellerid"
   if (h.some(x => x.includes('servicetype')) && h.some(x => x.includes('sellerid'))) return 'housing'
 
-  // Standard Brickroots format: Lead Date, Source, Customer Name, Mobile...
+  // Standard format: Lead Date, Source, Customer Name, Mobile...
   if (h.some(x => x === 'leaddate') && h.some(x => x === 'customername') && h.some(x => x === 'mobile')) return 'standard'
 
   return 'generic'

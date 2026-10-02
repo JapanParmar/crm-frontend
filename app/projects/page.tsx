@@ -860,7 +860,7 @@ export default function ProjectsPage() {
               <Input
                 label="Project Name"
                 required
-                placeholder="BRICKroots Residency"
+                placeholder="Apex Residency"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
@@ -868,7 +868,7 @@ export default function ProjectsPage() {
               <Input
                 label="Project Code"
                 required
-                placeholder="BR-RES"
+                placeholder="APX-RES"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               />
@@ -971,7 +971,7 @@ export default function ProjectsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 label="Developer"
-                placeholder="BRICKroots Builders"
+                placeholder="Apex Builders"
                 value={formData.developer || ''}
                 onChange={(e) => setFormData({ ...formData, developer: e.target.value })}
               />

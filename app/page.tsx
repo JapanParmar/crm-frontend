@@ -611,7 +611,7 @@ export default function DashboardPage() {
           <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 relative z-10">
             <div className="flex-1">
               <div className="inline-flex items-center px-2 py-0.5 rounded-badges bg-ember text-white font-semibold text-xs mb-2 md:mb-3 select-none">
-                BRICKroots CRM Workspace
+                Apex CRM Workspace
               </div>
               <h1 className="font-family-display text-2xl sm:text-3xl md:text-5xl text-ink-black tracking-tight leading-tight mb-2 md:mb-3">
                 Infrastructure-grade lead telemetry.

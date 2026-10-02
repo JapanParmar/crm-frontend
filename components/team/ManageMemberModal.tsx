@@ -150,7 +150,7 @@ export function ManageMemberModal({ open, onClose, onSuccess, member }: ManageMe
           required
           type="email"
           disabled={isEdit}
-          placeholder="e.g. v.sen@brickroots.com"
+          placeholder="e.g. v.sen@company.com"
           error={form.formState.errors.email?.message}
           {...form.register('email')}
         />
